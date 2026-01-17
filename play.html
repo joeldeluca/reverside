@@ -847,6 +847,22 @@ canvas.webgl { width: 100vw; height: 100svh; }
   @media (max-height: 700px){
     #hOverlay2D{ top: 16%; bottom: 24%; }
   }
+
+/* --- Mobile usability fixes (v163c) --- */
+#legalFooter{ user-select:none; }
+@media (max-width: 900px){ #legalFooter{ display:none; } }
+#winBadge{ z-index: 9999 !important; pointer-events:auto !important; }
+#nextLevelBtn{ pointer-events:auto !important; }
+#rotPanel, #rotationsPanel, #rotWrap, #rotControls{ z-index: 2000; }
+
+
+@media (max-width: 700px){
+  #legalFooter{ display:none !important; }
+}
+
+@media (max-width: 780px){
+  #legalFooter{ display:none !important; }
+}
 </style>
 </head>
 <body>
@@ -1158,7 +1174,7 @@ function stopAllAudio(){
     s.onload = step; s.onerror = step;
     document.head.appendChild(s);
   }
-  setTimeout(()=>{ if(!window.THREE) ov.classList.add("show"); },400);
+  setTimeout(()=>{ if(!window.THREE) ov.classList.add("show"); },1500);
   step();
 })();
 
@@ -1904,7 +1920,8 @@ function playScaleSolved(){
 
     // On garde plus de détails dans l'image source (utile pour les grandes photos)
   function clampCanvas(img, maxDim){
-    maxDim = maxDim || 4096; // au lieu de 2048
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+    maxDim = maxDim || (ios ? 2048 : 4096); // iOS: limite pour eviter des textures trop lourdes
     const iw = (img.naturalWidth || img.width || 0);
     const ih = (img.naturalHeight || img.height || 0);
     const scale = Math.min(1, maxDim / Math.max(iw, ih));
@@ -1944,7 +1961,7 @@ function playScaleSolved(){
       im.decoding = "async";
         im.crossOrigin = "anonymous";
         im.decoding = "async";
-        im.onload = ()=>{ frontImg = im; rebuildTextures(); updateRectoPreview(im.src); };
+        im.onload = async ()=>{ try{ if(im.decode) await im.decode(); }catch(e){} frontImg = im; rebuildTextures(); updateRectoPreview(im.src); };
         im.src = fr;
       }
       if (bk){
@@ -1955,7 +1972,7 @@ function playScaleSolved(){
       im.decoding = "async";
         im.crossOrigin = "anonymous";
         im.decoding = "async";
-        im.onload = ()=>{ backImg = im; rebuildTextures(); updateVersoPreview(im.src); };
+        im.onload = async ()=>{ try{ if(im.decode) await im.decode(); }catch(e){} backImg = im; rebuildTextures(); updateVersoPreview(im.src); };
         im.src = bk;
       }
       const same = LS.get(LS_KEYS.SAME);
@@ -2658,7 +2675,7 @@ function onTimeExpired(){
       }
 
       // petite fenêtre anti double-tap
-      setTimeout(()=>{ timeExpiredLock = false; }, 400);
+      setTimeout(()=>{ timeExpiredLock = false; }, 1500);
       return;
     }
   }
@@ -2684,7 +2701,7 @@ function onTimeExpired(){
   renderTimer();
 
   // petite fenêtre anti double-tap
-  setTimeout(()=>{ timeExpiredLock = false; }, 400);
+  setTimeout(()=>{ timeExpiredLock = false; }, 1500);
 }
 
 
@@ -4667,7 +4684,7 @@ async function searchMoveX(K, maxDepth, options){
 </div>
 
 
-<div id="legalFooter" style="position:fixed; left:10px; bottom:8px; z-index:9998; font-size:12px; opacity:.75; background:rgba(255,255,255,.70); padding:6px 8px; border-radius:10px; border:1px solid rgba(0,0,0,.10);">
+<div id="legalFooter" style="position:fixed; left:10px; bottom:8px; z-index:50; font-size:12px; opacity:.75; background:rgba(255,255,255,.70); padding:6px 8px; border-radius:10px; border:1px solid rgba(0,0,0,.10); pointer-events:none;">
   © Joël De Luca — REVERside
 </div>
 
