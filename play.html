@@ -272,7 +272,7 @@
 
     display:none;
     overflow:auto;
-    z-index:900;
+    z-index:2000;
   }
   #sidePanel.show{
     display:block;
@@ -1923,7 +1923,8 @@ function playScaleSolved(){
     // On garde plus de détails dans l'image source (utile pour les grandes photos)
   function clampCanvas(img, maxDim){
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-    maxDim = maxDim || (ios ? 2048 : 4096); // iOS: limite pour eviter des textures trop lourdes
+    const isIPhone = /iPhone|iPod/.test(navigator.userAgent);
+    maxDim = maxDim || (ios ? (isIPhone ? 1024 : 2048) : 4096); // iOS: limite pour eviter des textures trop lourdes
     const iw = (img.naturalWidth || img.width || 0);
     const ih = (img.naturalHeight || img.height || 0);
     const scale = Math.min(1, maxDim / Math.max(iw, ih));
@@ -3205,11 +3206,10 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   // Mobile: toggle visibility of the Rotations block to free screen space
   const rotToggleBtn = byId("rotToggleBtn");
-  if (rotToggleBtn){
-    rotToggleBtn.onclick = ()=>{
-      document.body.classList.toggle('showRot');
-    };
-  }
+  const rotPill = byId("rotPill");
+  const toggleRot = ()=>{ document.body.classList.toggle('showRot'); };
+  if (rotToggleBtn){ rotToggleBtn.onclick = toggleRot; }
+  if (rotPill){ rotPill.onclick = (e)=>{ if(e && e.target && e.target.id==='rotToggleBtn') return; toggleRot(); }; }
 
   const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
@@ -3494,6 +3494,7 @@ if (modeSel){
     renderTimer();
 
     if (autoMix){
+      hasMixedSinceReset = true;
       const defaultCount = (ROWS*COLS<=24)?14
                         :(ROWS*COLS<=36?22
                         :(ROWS*COLS<=54?30:40));
