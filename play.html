@@ -186,7 +186,7 @@
     top:50%;
     left:8px;
     transform:translateY(-50%);
-    z-index: 1200;
+    z-index:30;
     display:flex;
     flex-direction:column;
     gap:8px;
@@ -242,7 +242,7 @@
     position:fixed;
     right:16px;
     bottom:24px;
-    z-index: 1300;
+    z-index:950;
   }
   #fabMain > button{
     width:40px;
@@ -273,11 +273,33 @@
 
     display:none;
     overflow:auto;
-    z-index: 1100;
+    z-index:900;
   }
   #sidePanel.show{
     display:block;
   }
+
+  /* Mobile layout: sidePanel becomes a bottom sheet to avoid covering game controls */
+  @media (max-width: 900px){
+    #sidePanel{
+      top:auto;
+      left:12px;
+      right:12px;
+      bottom:86px; /* above bottom bar */
+      width:auto;
+      max-height:55vh;
+      z-index:1400;
+    }
+    #fabMain{
+      right:12px;
+      bottom:18px;
+      z-index:1450;
+    }
+    #bottomBar{
+      z-index:1500;
+    }
+  }
+
 
   .grp{
     background:#020617;
@@ -1413,10 +1435,18 @@ const byId = id => document.getElementById(id);
   if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
     window.__IOS_TOUCH_CLICK_PATCH__ = true;
     document.addEventListener("touchend", function(ev){
-      const btn = ev && ev.target && ev.target.closest ? ev.target.closest("button") : null;
+      // iOS Safari: certains boutons ne déclenchent pas toujours "click".
+      // On n'applique le patch qu'aux vrais boutons, sans casser les <select>/<input>.
+      const t = ev && ev.target;
+      if (!t) return;
+      // Si l'interaction vise un champ (select/input/textarea/range/file), on ne touche à rien.
+      if (t.closest && t.closest("select, input, textarea")) return;
+
+      const btn = t.closest && t.closest("button");
       if (!btn) return;
+
+      // Empêche le double déclenchement (touchend + click différé)
       ev.preventDefault();
-      ev.stopPropagation();
       try{ btn.click(); }catch(e){}
     }, {passive:false, capture:true});
   }
@@ -2175,19 +2205,18 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
     function sliceTile(img, r, c){
     const iw = (img.naturalWidth || img.width || 0);
     const ih = (img.naturalHeight || img.height || 0);
-    const sw = iw / COLS;
-    const sh = ih / ROWS;
 
-    // Important iOS/Safari: éviter les zones vides dues aux arrondis flottants.
-    // On calcule des bornes entières (x0..x1, y0..y1) pour couvrir tous les pixels.
-    const x0 = Math.round((COLS - 1 - c) * sw);
-    const x1 = Math.round((COLS - c) * sw);
-    const y0 = Math.round((ROWS - 1 - r) * sh);
-    const y1 = Math.round((ROWS - r) * sh);
-    const sx = Math.max(0, Math.min(iw-1, x0));
-    const sy = Math.max(0, Math.min(ih-1, y0));
-    const sww = Math.max(1, Math.min(iw - sx, x1 - x0));
-    const shh = Math.max(1, Math.min(ih - sy, y1 - y0));
+    // Bornes entières (répartit les arrondis, évite les zones vides sur iOS Safari)
+    // Inversion conservée : colonnes et lignes retournées.
+    const x0 = Math.round(((COLS - 1 - c) * iw) / COLS);
+    const x1 = Math.round(((COLS - c) * iw) / COLS);
+    const y0 = Math.round(((ROWS - 1 - r) * ih) / ROWS);
+    const y1 = Math.round(((ROWS - r) * ih) / ROWS);
+
+    const sx = x0;
+    const sy = y0;
+    const sw = Math.max(1, x1 - x0);
+    const sh = Math.max(1, y1 - y0);
 
     const can = document.createElement("canvas");
     can.width  = TILE_RES;
@@ -2195,9 +2224,11 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
     const ctx = can.getContext("2d");
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, sx, sy, sww, shh, 0, 0, TILE_RES, TILE_RES);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TILE_RES, TILE_RES);
     return can;
   }
+
+
 
   function radii(){ return {R_GROUP:RADIUS+EPS}; }
   function sizes(R_GROUP){
@@ -2887,12 +2918,7 @@ function updateTime(){
     if (nextBtn && !nextBtn.__bound){
       nextBtn.__bound = true;
       const advance = (e)=>{
-
         try{ if (e){ e.preventDefault?.(); e.stopPropagation?.(); } }catch(_){}
-        // Anti double-tap (iOS déclenche souvent touchend + click)
-        const now = performance.now();
-        if (nextBtn.__advancing && (now - nextBtn.__advancing) < 600) return;
-        nextBtn.__advancing = now;
         stopVictoryAnim();
         if (mixing) return;
         try{ grantModeRewardIfEligible(getLevelNumber1Based()); }catch(e){}
@@ -2913,10 +2939,7 @@ function updateTime(){
           console.error("Next level failed", err);
           try{ showToast?.("Erreur passage niveau"); }catch(_){}
         }
-      
       };
-      // Prefer pointer events; keep click as fallback. Do NOT bind touchend to avoid double fire.
-      nextBtn.addEventListener("pointerup", advance, {passive:false});
       nextBtn.addEventListener("click", advance);
     }
 
