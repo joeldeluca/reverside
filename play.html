@@ -27,6 +27,7 @@
     inset:0;
     display:block;
     z-index:0;
+    touch-action:none;
   }
 
   /* Barre H fixe 2D */
@@ -272,7 +273,7 @@
 
     display:none;
     overflow:auto;
-    z-index:2000;
+    z-index:900;
   }
   #sidePanel.show{
     display:block;
@@ -1407,6 +1408,107 @@ function bootGame(){
   updateSeedHUD();
 const byId = id => document.getElementById(id);
 
+  // iOS Safari: sécurise les clics (fallback touch->click)
+  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
+    window.__IOS_TOUCH_CLICK_PATCH__ = true;
+    document.addEventListener('touchend', function(ev){
+      const t = ev.target;
+      if (!t || !t.closest) return;
+      const btn = t.closest('button');
+      if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      btn.click();
+    }, {passive:false, capture:true});
+  }
+
+  // iOS Safari: sécurise les clics (fallback touch->click)
+  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
+    window.__IOS_TOUCH_CLICK_PATCH__ = true;
+    document.addEventListener('touchend', function(ev){
+      const t = ev.target;
+      if (!t || !t.closest) return;
+      const btn = t.closest('button');
+      if (btn){
+        ev.preventDefault();
+        ev.stopPropagation();
+        btn.click();
+      }
+    }, {passive:false, capture:true});
+  }
+
+  // iOS Safari: securise les clics (fallback touch->click)
+  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
+    window.__IOS_TOUCH_CLICK_PATCH__ = true;
+    document.addEventListener("touchend", function(ev){
+      var t = ev.target;
+      if (!t || !t.closest) return;
+      var btn = t.closest("button");
+      if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      btn.click();
+    }, {passive:false, capture:true});
+  }
+
+
+  // iOS Safari: sécurise les clics (fallback touch->click)
+  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
+    window.__IOS_TOUCH_CLICK_PATCH__ = true;
+    document.addEventListener("touchend", function(ev){
+      try{
+        var btn = ev && ev.target && ev.target.closest ? ev.target.closest("button") : null;
+        if(btn){
+          ev.preventDefault();
+          ev.stopPropagation();
+          btn.click();
+        }
+      }catch(e){}
+    }, {passive:false, capture:true});
+  }
+
+  // iOS Safari: sécurise les clics (fallback touch->click)
+  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
+    window.__IOS_TOUCH_CLICK_PATCH__ = true;
+    document.addEventListener("touchend", (ev)=>{
+      const btn = (ev.target && ev.target.closest) ? ev.target.closest("button") : null;
+      if (btn){
+        ev.preventDefault();
+        ev.stopPropagation();
+        btn.click();
+      }
+    }, {passive:false, capture:true});
+  }
+
+  // iOS Safari: sécurise les clics (fallback touch->click)
+  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
+    window.__IOS_TOUCH_CLICK_PATCH__ = true;
+    document.addEventListener("touchend", (ev)=>{
+      const el = ev.target && ev.target.closest && ev.target.closest("button");
+      if (!el) return;
+      ev.preventDefault();
+      try{ el.click(); }catch(e){}
+    }, {passive:false});
+  }
+
+  // iOS Safari: sécurise les clics (certains overlays/touch peuvent empêcher le click sur button/select)
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1)) {
+    try{
+      document.addEventListener("touchend", (ev)=>{
+        const btn = ev.target && ev.target.closest && ev.target.closest("button");
+        if (!btn) return;
+        ev.preventDefault();
+        btn.click();
+      }, {passive:false});
+    }catch(e){}
+  }
+
   let victorySoundOn = true; // toggle sons victoire
 
   // --- option : sons de victoire ---
@@ -1923,8 +2025,7 @@ function playScaleSolved(){
     // On garde plus de détails dans l'image source (utile pour les grandes photos)
   function clampCanvas(img, maxDim){
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-    const isIPhone = /iPhone|iPod/.test(navigator.userAgent);
-    maxDim = maxDim || (ios ? (isIPhone ? 1024 : 2048) : 4096); // iOS: limite pour eviter des textures trop lourdes
+    maxDim = maxDim || (ios ? 2048 : 4096); // iOS: limite pour eviter des textures trop lourdes
     const iw = (img.naturalWidth || img.width || 0);
     const ih = (img.naturalHeight || img.height || 0);
     const scale = Math.min(1, maxDim / Math.max(iw, ih));
@@ -2942,6 +3043,8 @@ function updateTime(){
 
     if (isSolved()) rotateLevelLogic(0,1);
 
+    hasMixedSinceReset = true;  // autoMix or manual mix now authorizes victory
+
     moves=0; byId("moves").textContent="0";
     document.querySelectorAll("button").forEach(b=>b.disabled=false);
     mixing=false;
@@ -3206,10 +3309,11 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   // Mobile: toggle visibility of the Rotations block to free screen space
   const rotToggleBtn = byId("rotToggleBtn");
-  const rotPill = byId("rotPill");
-  const toggleRot = ()=>{ document.body.classList.toggle('showRot'); };
-  if (rotToggleBtn){ rotToggleBtn.onclick = toggleRot; }
-  if (rotPill){ rotPill.onclick = (e)=>{ if(e && e.target && e.target.id==='rotToggleBtn') return; toggleRot(); }; }
+  if (rotToggleBtn){
+    rotToggleBtn.onclick = ()=>{
+      document.body.classList.toggle('showRot');
+    };
+  }
 
   const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
@@ -3494,7 +3598,6 @@ if (modeSel){
     renderTimer();
 
     if (autoMix){
-      hasMixedSinceReset = true;
       const defaultCount = (ROWS*COLS<=24)?14
                         :(ROWS*COLS<=36?22
                         :(ROWS*COLS<=54?30:40));
