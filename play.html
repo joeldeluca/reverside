@@ -1150,8 +1150,10 @@ function stopAllAudio(){
 (function(){
   const ov = document.getElementById("overlay");
   const srcs = [
-    "https://unpkg.com/three@0.158.0/build/three.min.js",
-    "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"
+    "./three.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js",
+    "https://unpkg.com/three@0.158.0/build/three.min.js"
   ];
   let i = 0;
   function step(){
@@ -1174,7 +1176,7 @@ function stopAllAudio(){
     s.onload = step; s.onerror = step;
     document.head.appendChild(s);
   }
-  setTimeout(()=>{ if(!window.THREE) ov.classList.add("show"); },1500);
+  setTimeout(()=>{ if(!window.THREE) ov.classList.add("show"); },2500);
   step();
 })();
 
@@ -2029,13 +2031,13 @@ function playScaleSolved(){
 
   const cv = byId("cv");
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-  const renderer = new THREE.WebGLRenderer({antialias:!isIOS,canvas:cv,alpha:true,powerPreference:(isIOS?"low-power":"high-performance")});
+  const renderer = new THREE.WebGLRenderer({antialias:false,canvas:cv,alpha:true,powerPreference:"high-performance"});
   const vv = window.visualViewport;
   const vw = vv? Math.round(vv.width): innerWidth;
   const vh = vv? Math.round(vv.height): innerHeight;
   renderer.setSize(vw,vh);
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.5:2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.25:2));
   renderer.setClearColor(0x000000,0);
   renderer.domElement.style.background='transparent';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -2861,43 +2863,38 @@ function updateTime(){
     trySaveBest(timerStoppedMs - gameStartMs);
 
     // Passage volontaire : le gamer clique "Niveau suivant"
-    if (nextBtn){
-      nextBtn.onclick = ()=>{
+    if (nextBtn && !nextBtn.__bound){
+      nextBtn.__bound = true;
+      const advance = (e)=>{
+        try{ if (e){ e.preventDefault?.(); e.stopPropagation?.(); } }catch(_){}
         stopVictoryAnim();
-        // Sécurité : ne rien faire si déjà en transition
         if (mixing) return;
-
-        // Étape 3 : bonus de fin de mode (si applicable)
         try{ grantModeRewardIfEligible(getLevelNumber1Based()); }catch(e){}
-
         wb.classList.remove("show");
         celebrating = false;
         runOver = false;
-
         document.body.classList.remove('solved');
-
-        // Réactive les contrôles (loadLevel mettra à jour l'état)
-
-        if (currentLevelIndex < LEVELS.length - 1){
-          currentLevelIndex++;
-          loadLevel(currentLevelIndex, true);
-        
-  
-  try{ syncLivesToEngine(); renderLives(); }catch(e){}
-  try{ renderProgressionUI(); }catch(e){}
-try{ renderProgressionUI(); }catch(e){}
-} else {
-          alert("👏 Bravo ! Tu as terminé tous les niveaux de REVERside !");
+        try{ syncLivesToEngine(); renderLives(); }catch(e){}
+        try{ renderProgressionUI(); }catch(e){}
+        try{
+          if (currentLevelIndex < LEVELS.length - 1){
+            currentLevelIndex++;
+            loadLevel(currentLevelIndex, true);
+          } else {
+            alert("👏 Bravo ! Tu as terminé tous les niveaux de REVERside !");
+          }
+        }catch(err){
+          console.error("Next level failed", err);
+          try{ showToast?.("Erreur passage niveau"); }catch(_){}
         }
       };
-  // iOS/Safari: ensure the button reacts reliably
-  nextBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); nextBtn.click(); }, {passive:false});
-  nextBtn.addEventListener('pointerdown', (e)=>{ try{ e.preventDefault(); }catch(_){}; nextBtn.click(); });
-
+      nextBtn.addEventListener("click", advance);
+      nextBtn.addEventListener("touchend", advance, {passive:false});
+      nextBtn.addEventListener("pointerup", advance);
     }
+
   }
 
-    trySaveBest(timerStoppedMs-gameStartMs);
     function checkSolved(){
     if (celebrating || mixing) return;
     const solved = isSolved();
