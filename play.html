@@ -821,7 +821,28 @@ canvas.webgl { width: 100vw; height: 100svh; }
       padding: 6px 8px;
       border-radius: 12px;
     }
+
+    /* Mobile: keep the 3D canvas readable.
+       Rotations are toggleable (button "Rot") to avoid UI overlap. */
+    #bottomBar .pill-rot{ display:none; }
+    body.showRot #bottomBar .pill-rot{ display:block; }
+    #rotToggleBtn{ display:inline-flex; }
   }
+
+  /* Default: show rotations on larger screens */
+  #rotToggleBtn{ display:none; }
+
+  /* Solved-state: keep "Niveau suivant" always clickable (iPad/iPhone) */
+  #winBadge{ pointer-events:none; }
+  #winBadge.show{ pointer-events:auto; }
+  #nextLevelBtn{ pointer-events:auto; }
+  body.solved #bottomBar,
+  body.solved #sidePanel,
+  body.solved #fabMain{
+    pointer-events:none;
+    opacity:0.65;
+  }
+  body.solved #winBadge{ opacity:1; }
 
   @media (max-height: 700px){
     #hOverlay2D{ top: 16%; bottom: 24%; }
@@ -973,6 +994,10 @@ canvas.webgl { width: 100vw; height: 100svh; }
 
   <!-- Ligne 2 : Pivot + Colonne -->
   <div class="row">
+    <div class="pill">
+      <span>Rot</span>
+      <button class="btn btn-small btn-primary" id="rotToggleBtn" title="Afficher / masquer Rotations">☰</button>
+    </div>
     <div class="pill">
       <span>Pivot</span>
       <button class="btn btn-small btn-primary" id="pivotBtn">P</button>
@@ -2802,9 +2827,9 @@ function updateTime(){
     const wb = byId("winBadge");
     const nextBtn = byId("nextLevelBtn");
 
-    // Bloque les commandes pendant l'état "résolu"
-    document.querySelectorAll("button").forEach(b=>b.disabled=true);
-    if (nextBtn) nextBtn.disabled = false;
+    // Bloque les commandes pendant l'état "résolu" (sans désactiver les boutons — iOS/iPad)
+    // On utilise pointer-events via la classe CSS "solved".
+    document.body.classList.add('solved');
 
     wb.classList.add("show"); wb.classList.add("win-burst");
         try{ if (typeof playBeep==="function"){ playBeep(880,0.12,0.25,0); playBeep(1320,0.12,0.25,0.12);} }catch(e){}
@@ -2832,8 +2857,9 @@ function updateTime(){
         celebrating = false;
         runOver = false;
 
-        // Réactive les boutons (loadLevel mettra de toute façon à jour l'état)
-        document.querySelectorAll("button").forEach(b=>b.disabled=false);
+        document.body.classList.remove('solved');
+
+        // Réactive les contrôles (loadLevel mettra à jour l'état)
 
         if (currentLevelIndex < LEVELS.length - 1){
           currentLevelIndex++;
@@ -2948,6 +2974,19 @@ try{ renderProgressionUI(); }catch(e){}
     checkSolved();
   }
 
+  // --- iOS/iPad memory fix: cache per-tile textures instead of recreating them per bar ---
+  // This prevents partial/missing textures on mobile Safari when many CanvasTextures are created.
+  let __tileTexCache = new Map();
+  let __tileTexCacheSig = "";
+  function __clearTileTexCache(){
+    try{
+      for (const t of __tileTexCache.values()){
+        try{ t.dispose(); }catch(e){}
+      }
+    }catch(e){}
+    __tileTexCache.clear();
+  }
+
   function rebuildTextures(){
     if (!frontImg && !backImg) return;
 
@@ -2961,6 +3000,16 @@ try{ renderProgressionUI(); }catch(e){}
       return { r, c };
     }
 
+    // If grid or sources changed (level change / new images / offsets), reset cache.
+    const sig = [ROWS,COLS,
+      frontImg ? (frontImg.currentSrc || frontImg.src || '') : '',
+      backImg  ? (backImg.currentSrc  || backImg.src  || '') : '',
+      same?1:0, off|0].join('|');
+    if (sig !== __tileTexCacheSig){
+      __tileTexCacheSig = sig;
+      __clearTileTexCache();
+    }
+
     function makeTexForId(id){
       if (!id) return null;
       const prefix = id.charAt(0);
@@ -2968,10 +3017,13 @@ try{ renderProgressionUI(); }catch(e){}
 
       if (prefix === "F"){
         if (!frontImg) return null;
+        const key = `F|${r}|${baseC}`;
+        if (__tileTexCache.has(key)) return __tileTexCache.get(key);
         const can = sliceTile(frontImg, r, baseC);
         const tex = new THREE.CanvasTexture(can);
         tuneTex(tex);
         tex.needsUpdate = true;
+        __tileTexCache.set(key, tex);
         return tex;
       }
 
@@ -2982,10 +3034,13 @@ try{ renderProgressionUI(); }catch(e){}
         if (!img) return null;
 
         const c = (baseC + off + COLS) % COLS;
+        const key = `B|${r}|${c}`;
+        if (__tileTexCache.has(key)) return __tileTexCache.get(key);
         const can = sliceTile(img, r, c);
         const tex = new THREE.CanvasTexture(can);
         tuneTex(tex);
         tex.needsUpdate = true;
+        __tileTexCache.set(key, tex);
         return tex;
       }
       return null;
@@ -3133,6 +3188,14 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   const pivotBtn = byId("pivotBtn");
   if (pivotBtn) pivotBtn.onclick = () => pivotOp();
+
+  // Mobile: toggle visibility of the Rotations block to free screen space
+  const rotToggleBtn = byId("rotToggleBtn");
+  if (rotToggleBtn){
+    rotToggleBtn.onclick = ()=>{
+      document.body.classList.toggle('showRot');
+    };
+  }
 
   const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
@@ -3376,6 +3439,9 @@ if (modeSel){
   try { maybeGrantProgressLives(); } catch(e) {}
     renderLives();
     ROWS=L.rows; COLS=L.cols; STEP=STEP_FOR(COLS);
+
+    // New grid => reset per-tile texture cache (prevents stale slices on iPad/iPhone)
+    try{ __tileTexCacheSig = ""; __clearTileTexCache(); }catch(e){}
 
     const displayLevel = `${currentLevelIndex+1}/${LEVELS.length}`;
 
