@@ -663,6 +663,126 @@ canvas.webgl { width: 100vw; height: 100svh; }
   #bottomBar{ left:8px; right:8px; bottom:calc(6px + env(safe-area-inset-bottom)); }
 }
 
+
+  @media (max-width: 520px){
+    #topbar{gap:6px;padding:6px 8px;}
+    .pill{font-size:12px; padding:8px 10px; min-height:44px;}
+    #statsPill{font-size:12px;}
+    #lifePill{font-size:12px;}
+    #rotPanel{transform: scale(.92); transform-origin:left top; left:10px; top:150px;}
+    #pivotPanel{left:10px; top:360px;}
+    #colPanel{left:10px; top:420px;}
+    #fab{right:14px; bottom:90px;}
+    #panel{right:10px; left:10px; width:auto; max-width:none; top:auto; bottom:120px; transform:none;}
+  }
+  @media (max-height: 700px){
+    #panel{bottom:110px; max-height:60vh; overflow:auto;}
+    #rotPanel{top:130px;}
+  }
+
+/* RESPONSIVE_MOBILE_TWEAKS */
+@media (max-width: 520px){
+  #topBar, #topBar2, #topBar3{
+    height: 44px;
+    font-size: 14px;
+    padding: 4px 10px;
+  }
+  #topBar2{ height: 34px; }
+  #topBar3{ height: 44px; }
+  #rotPanel{ transform: scale(0.88); transform-origin: left top; }
+  #bottomHud{ transform: scale(0.90); transform-origin: left bottom; }
+  #languageToggle{ top: 6px; right: 6px; }
+  #ctlFab{ right: 10px; bottom: 12px; }
+}
+@media (max-height: 620px){
+  #topBar, #topBar2, #topBar3{ height: 40px; }
+  #rotPanel{ transform: scale(0.85); }
+}
+
+
+/* Mobile compact layout to prevent overlaps */
+@media (max-width: 520px), (max-height: 720px){
+  #topBar{
+    padding: 6px 8px !important;
+  }
+  .chip{
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+  }
+  #hudCenter{
+    max-width: 92vw !important;
+  }
+  #leftPad{
+    transform: scale(0.9);
+    transform-origin: left center;
+  }
+  #rightPanel{
+    width: min(92vw, 420px) !important;
+    right: 10px !important;
+    top: 120px !important;
+  }
+  #fab{
+    right: 12px !important;
+    bottom: 18px !important;
+  }
+  #bottomHint{
+    bottom: 90px !important;
+  }
+}
+
+/* Mobile tightening (iPhone / small screens) */
+@media (max-width: 520px){
+  #topBar{ padding: 8px 10px; }
+  .pill{ font-size: 12px; padding: 8px 10px; border-radius: 14px; }
+  #centerPill{ font-size: 12px; }
+  #leftPad{ transform: scale(0.92); transform-origin: left top; }
+  #rightPanel{ width: 92vw; right: 4vw; top: 120px; }
+  #fab{ right: 16px; bottom: 16px; }
+  #bottomHint{ font-size: 12px; }
+  #winBadge{ top: 92px; }
+}
+@media (max-width: 390px){
+  #rightPanel{ top: 108px; }
+  #leftPad{ transform: scale(0.88); }
+}
+
+
+  /* --- Mobile compact layout --- */
+  @media (max-width: 520px){
+    #topBar{gap:6px; padding:6px 8px;}
+    #topLeft, #topCenter, #topRight{min-height:44px;}
+    #topLeft .pill, #topCenter .pill, #topRight .pill{font-size:12px;}
+    #chipLevel{font-size:12px; padding:6px 10px;}
+    #leftPad{transform:scale(0.9); transform-origin:0 0;}
+    #rightPanel{width:min(94vw, 420px);}
+  }
+  @media (max-height: 740px){
+    #topBar{position:fixed;}
+    #hudBar{position:fixed; top:58px;}
+  }
+
+
+/* REVERside mobile tweaks */
+@media (max-width: 520px){
+  #topBar, #subBar{ border-radius: 18px; }
+  #topBar{ font-size: 14px; }
+  #subBar{ font-size: 13px; }
+  #leftPad{ transform: scale(0.92); transform-origin: left center; }
+  #rightPanel{ width: min(94vw, 520px); }
+  #panel{ width: min(94vw, 520px); }
+}
+@media (max-width: 420px){
+  #topBar{ font-size: 12px; padding: 10px 12px; }
+  #subBar{ font-size: 12px; padding: 8px 12px; }
+  #leftPad{ transform: scale(0.85); }
+  #langPill{ transform: scale(0.9); transform-origin: right top; }
+  #hintToast{ max-width: 92vw; font-size: 13px; }
+}
+@media (max-height: 700px){
+  #topWrap{ top: 8px; }
+  #panel{ top: 120px; }
+}
+
 </style>
 </head>
 <body>
@@ -946,7 +1066,6 @@ function stopAllAudio(){
 (function(){
   const ov = document.getElementById("overlay");
   const srcs = [
-    "./assets/three/build/three.min.js",
     "https://unpkg.com/three@0.158.0/build/three.min.js",
     "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"
   ];
@@ -1710,9 +1829,11 @@ function playScaleSolved(){
     // On garde plus de détails dans l'image source (utile pour les grandes photos)
   function clampCanvas(img, maxDim){
     maxDim = maxDim || 4096; // au lieu de 2048
-    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-    const w = Math.max(1, Math.round(img.width  * scale));
-    const h = Math.max(1, Math.round(img.height * scale));
+    const iw = (img.naturalWidth || img.width || 0);
+    const ih = (img.naturalHeight || img.height || 0);
+    const scale = Math.min(1, maxDim / Math.max(iw, ih));
+    const w = Math.max(1, Math.round(iw * scale));
+    const h = Math.max(1, Math.round(ih * scale));
 
     const c = document.createElement("canvas");
     c.width  = w;
@@ -1741,11 +1862,23 @@ function playScaleSolved(){
       const bk = LS.get(LS_KEYS.BACK);
       if (fr){
         const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.decoding = "async";
+      im.crossOrigin = "anonymous";
+      im.decoding = "async";
+        im.crossOrigin = "anonymous";
+        im.decoding = "async";
         im.onload = ()=>{ frontImg = im; rebuildTextures(); updateRectoPreview(im.src); };
         im.src = fr;
       }
       if (bk){
         const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.decoding = "async";
+      im.crossOrigin = "anonymous";
+      im.decoding = "async";
+        im.crossOrigin = "anonymous";
+        im.decoding = "async";
         im.onload = ()=>{ backImg = im; rebuildTextures(); updateVersoPreview(im.src); };
         im.src = bk;
       }
@@ -1930,10 +2063,11 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
       }
     }
   }
-
     function sliceTile(img, r, c){
-    const sw = Math.floor(img.width  / COLS);
-    const sh = Math.floor(img.height / ROWS);
+    const iw = (img.naturalWidth || img.width || 0);
+    const ih = (img.naturalHeight || img.height || 0);
+    const sw = iw / COLS;
+    const sh = ih / ROWS;
     const sx = (COLS - 1 - c) * sw;
     const sy = (ROWS - 1 - r) * sh;
 
@@ -1943,6 +2077,7 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
     const ctx = can.getContext("2d");
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
+    // drawImage accepte des coordonnees flottantes; ceci evite des artefacts / lignes vides sur iOS
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TILE_RES, TILE_RES);
     return can;
   }
@@ -2661,6 +2796,10 @@ try{ renderProgressionUI(); }catch(e){}
           alert("👏 Bravo ! Tu as terminé tous les niveaux de REVERside !");
         }
       };
+  // iOS/Safari: ensure the button reacts reliably
+  nextBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); nextBtn.click(); }, {passive:false});
+  nextBtn.addEventListener('pointerdown', (e)=>{ try{ e.preventDefault(); }catch(_){}; nextBtn.click(); });
+
     }
   }
 
