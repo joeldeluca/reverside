@@ -783,6 +783,49 @@ canvas.webgl { width: 100vw; height: 100svh; }
   #panel{ top: 120px; }
 }
 
+
+
+  /* === MOBILE LAYOUT PATCH v163a === */
+  @media (max-width: 520px){
+    html,body{ overflow:hidden; }
+    #top{
+      top: calc(env(safe-area-inset-top, 0px) + 6px);
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    #levelBadge{
+      top: calc(env(safe-area-inset-top, 0px) + 78px);
+      font-size: 10px;
+      padding: 3px 8px;
+    }
+    #winBadge{ top: calc(env(safe-area-inset-top, 0px) + 98px); }
+
+    /* Dock commands at bottom to avoid covering the cylinder */
+    #bottomBar{
+      left: 50%;
+      top: auto;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+      transform: translateX(-50%);
+      flex-direction: row;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    #bottomBar .row{
+      flex-direction: row;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    /* Slightly reduce button paddings on small screens */
+    .chip{
+      padding: 6px 8px;
+      border-radius: 12px;
+    }
+  }
+
+  @media (max-height: 700px){
+    #hOverlay2D{ top: 16%; bottom: 24%; }
+  }
 </style>
 </head>
 <body>
@@ -1071,7 +1114,15 @@ function stopAllAudio(){
   ];
   let i = 0;
   function step(){
-    if (window.THREE){ ov.classList.remove("show"); bootGame(); return; }
+    if (window.THREE){
+      ov.classList.remove("show");
+      window.__THREE_READY__ = true;
+      if (typeof window.bootGame === "function" && !window.__BOOTED__){
+        window.__BOOTED__ = true;
+        window.bootGame();
+      }
+      return;
+    }
     if (i>=srcs.length){
       ov.querySelector("h2").textContent = "Échec de chargement de THREE";
       ov.classList.add("show");
@@ -2920,6 +2971,7 @@ try{ renderProgressionUI(); }catch(e){}
         const can = sliceTile(frontImg, r, baseC);
         const tex = new THREE.CanvasTexture(can);
         tuneTex(tex);
+        tex.needsUpdate = true;
         return tex;
       }
 
@@ -2933,6 +2985,7 @@ try{ renderProgressionUI(); }catch(e){}
         const can = sliceTile(img, r, c);
         const tex = new THREE.CanvasTexture(can);
         tuneTex(tex);
+        tex.needsUpdate = true;
         return tex;
       }
       return null;
@@ -2945,10 +2998,10 @@ try{ renderProgressionUI(); }catch(e){}
         const m = g.children[0];
 
         const texFront = makeTexForId(g.userData.frontId);
-        if (texFront) m.material[4].map = texFront;
+        if (texFront){ m.material[4].map = texFront; m.material[4].needsUpdate = true; }
 
         const texBack  = makeTexForId(g.userData.backId);
-        if (texBack)  m.material[5].map = texBack;
+        if (texBack){  m.material[5].map = texBack; m.material[5].needsUpdate = true; }
       }
     }
   }
@@ -2989,11 +3042,11 @@ try{ renderProgressionUI(); }catch(e){}
           const texVerso = tilesB[idx(r0, c0)];
 
           if (g.userData.frontIsVisible){
-            mesh.material[4].map = texRecto;
-            mesh.material[5].map = texVerso;
+            mesh.material[4].map = texRecto; mesh.material[4].needsUpdate = true;
+            mesh.material[5].map = texVerso; mesh.material[5].needsUpdate = true;
           } else {
-            mesh.material[4].map = texVerso;
-            mesh.material[5].map = texRecto;
+            mesh.material[4].map = texVerso; mesh.material[4].needsUpdate = true;
+            mesh.material[5].map = texRecto; mesh.material[5].needsUpdate = true;
           }
         }
       }
@@ -3378,6 +3431,14 @@ if (modeSel){
   loadLevel(0,false);
   animate();
 }
+
+// Expose bootGame for async THREE loader (and prevent double-boot)
+window.bootGame = bootGame;
+if (window.__THREE_READY__ && !window.__BOOTED__){
+  window.__BOOTED__ = true;
+  try{ bootGame(); }catch(e){ console.error(e); }
+}
+
 
 // ====================================================================
 // ========================  LABO : ANALYSE  ===========================
