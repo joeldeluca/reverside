@@ -235,7 +235,6 @@
     padding:4px 10px;
     font-size:10px;
     z-index:25;
-    pointer-events:none; /* ne doit jamais bloquer les boutons (iPhone/iPad) */
   }
 
   /* Bouton "⋮" en bas à droite */
@@ -258,7 +257,7 @@
   }
 
   /* Panneau options (Mélange / Reset / Images) – à DROITE de l'écran */
-  #sidePanel{
+  #sidePanel{z-index:9999;
     position:fixed;
     top:90px;
     right:16px;
@@ -865,6 +864,29 @@ canvas.webgl { width: 100vw; height: 100svh; }
 @media (max-width: 780px){
   #legalFooter{ display:none !important; }
 }
+
+/* v164: mobile layout + safe-area */
+@media (max-width: 700px){
+  .hint{ max-width: 90vw; font-size: 13px; padding: 10px 12px; }
+  #leftPanel{ position: fixed; left: 10px; top: auto; bottom: calc(12px + env(safe-area-inset-bottom)); transform: none; }
+  #bottomBar{ position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); display:flex; gap:10px; justify-content:center; }
+  #fab{ bottom: calc(16px + env(safe-area-inset-bottom)); right: 14px; }
+  #sidePanel{ width: min(92vw, 420px); max-height: 70vh; right: 10px; top: 90px; }
+}
+/* Make sure UI sits above canvas on iOS */
+#leftPanel, #bottomBar, #sidePanel, #winBadge, #fab { z-index: 50; }
+canvas { touch-action: none; }
+
+
+/* v164 mobile safety */
+@media (max-width: 520px){
+  .hint{ bottom: calc(env(safe-area-inset-bottom) + 96px); font-size:12px; padding:10px 12px; }
+  #sidePanel{ width: min(92vw, 420px); right: 4vw; }
+  #fabMain{ bottom: calc(env(safe-area-inset-bottom) + 20px); }
+  .watermark{ display:none !important; }
+}
+body.solved #sidePanel, body.solved #fabMain{ pointer-events:auto !important; opacity:1 !important; }
+
 </style>
 </head>
 <body>
@@ -1138,6 +1160,9 @@ canvas.webgl { width: 100vw; height: 100svh; }
 </div>
 
 <script>
+// Global helpers (safe for double-load)
+window.byId = window.byId || function(id){ return document.getElementById(id); };
+
 function stopAllAudio(){
   try{
     if (typeof audioCtx !== 'undefined' && audioCtx){
@@ -1164,7 +1189,7 @@ function stopAllAudio(){
       window.__THREE_READY__ = true;
       if (typeof window.bootGame === "function" && !window.__BOOTED__){
         window.__BOOTED__ = true;
-        window.bootGame();
+        window.if(!window.__RS_BOOTED__){window.__RS_BOOTED__=true; if(!window.__RS_BOOTED__){ window.__RS_BOOTED__=true; bootGame(); }}
       }
       return;
     }
@@ -1203,12 +1228,14 @@ var currentLevelIndex = window.currentLevelIndex; // 0-based
 // ----------------------------------------------
 
 // --- Safe storage wrapper (prevents iOS/Safari SecurityError in private mode) ---
-const LS = {
+var LS = window.LS || {
   get(k){ try{ return window.localStorage.getItem(k); }catch(e){ return null; } },
   set(k,v){ try{ window.localStorage.setItem(k, v); }catch(e){} },
   remove(k){ try{ window.localStorage.removeItem(k); }catch(e){} },
   clear(){ try{ window.localStorage.clear(); }catch(e){} },
 };
+window.LS = LS;
+
 
 // Indique si un Mélange a été fait depuis le dernier reset / changement de niveau
 let hasMixedSinceReset = false;
@@ -1402,43 +1429,14 @@ function updateSeedHUD(){
 }
 // ====== /SEED ======
 
+
+function byId(id){ return document.getElementById(id); }
 function bootGame(){
   
   // Seed init (défi)
   ensureSeedInit();
   updateSeedHUD();
-const byId = id => document.getElementById(id);
-
-  // iOS Safari: sécurise les clics (fallback touch -> click)
-  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
-    window.__IOS_TOUCH_CLICK_PATCH__ = true;
-    document.addEventListener("touchend", function(ev){
-      const btn = ev && ev.target && ev.target.closest ? ev.target.closest("button") : null;
-      if (!btn) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      try{ btn.click(); }catch(e){}
-    }, {passive:false, capture:true});
-  }
-
-  let victorySoundOn = true; // toggle sons victoire
-
-  // --- option : sons de victoire ---
-  try{
-    const v = LS.get('reverside_victory_on');
-    if (v !== null) victorySoundOn = (v === '1');
-  }catch(e){}
-  const victoryChk = byId('victorySound');
-  if (victoryChk){
-    victoryChk.checked = !!victorySoundOn;
-    victoryChk.addEventListener('change', ()=>{
-      victorySoundOn = !!victoryChk.checked;
-      try{ LS.set('reverside_victory_on', victorySoundOn ? '1' : '0'); }catch(e){}
-    });
-  }
-
-
+  const byId = window.byId;
   // --- MOTEUR AUDIO : une note par barrette + Hymne à la joie ---
   
 let audioCtx = null;
@@ -1669,13 +1667,7 @@ const AUDIO_STUB = {
   let playSpeedFactor  = 1.0;  // contrôlé par le slider "Vitesse"
   let playVolumeFactor = 0.8;  // contrôlé par le slider "Volume"
   // Résolution des “tuiles” affichées sur le cylindre
-  const TILE_RES = (()=>{
-    const ua = navigator.userAgent || "";
-    const isIPhone = /iPhone/i.test(ua);
-    if (isIPhone) return 512;
-    if (typeof __isIOS !== "undefined" && __isIOS) return 768;
-    return 1024;
-  })();
+  const TILE_RES = 1024;  // tu peux tester 768 si l’iPad rame
 
   function ensureAudio(){
     if (typeof AUDIO_DISABLED !== 'undefined' && AUDIO_DISABLED) return null;
@@ -2051,14 +2043,32 @@ function playScaleSolved(){
 
 
   const cv = byId("cv");
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  var isIOS = (window.__RS_IS_IOS__!==undefined) ? window.__RS_IS_IOS__ : (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1)); window.__RS_IS_IOS__ = isIOS;
   const renderer = new THREE.WebGLRenderer({antialias:false,canvas:cv,alpha:true,powerPreference:"high-performance"});
+    // iOS stability: cap devicePixelRatio to reduce WebGL memory pressure
+    try{
+      var isIOS = (window.__RS_IS_IOS__!==undefined) ? window.__RS_IS_IOS__ : (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1)); window.__RS_IS_IOS__ = isIOS;
+      const dpr = Math.min(window.devicePixelRatio||1, isIOS ? 1.5 : 2);
+      renderer.setPixelRatio(dpr);
+    }catch(e){}
+
+    // WebGL context loss handler (iOS can kill the context on memory pressure)
+    const canvas = renderer.domElement;
+    canvas.addEventListener('webglcontextlost', (e)=>{
+      try{ e.preventDefault(); }catch(_){}
+      console.warn('WebGL context lost');
+    }, false);
+    canvas.addEventListener('webglcontextrestored', ()=>{
+      console.warn('WebGL context restored');
+      try{ onWindowResize(); }catch(_){}
+    }, false);
+
   const vv = window.visualViewport;
   const vw = vv? Math.round(vv.width): innerWidth;
   const vh = vv? Math.round(vv.height): innerHeight;
   renderer.setSize(vw,vh);
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, (isIOS && /iPhone/i.test(navigator.userAgent||""))?1: (isIOS?1.1:2)));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.25:2));
   renderer.setClearColor(0x000000,0);
   renderer.domElement.style.background='transparent';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -2135,21 +2145,9 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
   const idx = (r,c)=> r*COLS+c;
   let initFrontIds=[], initBackIds=[];
 
-  function disposeTileTextures(){
-    const arrays = [tilesF, tilesB];
-    arrays.forEach(a=>{
-      if (!a || !a.length) return;
-      for (const t of a){
-        try{ if (t && typeof t.dispose === "function") t.dispose(); }catch(e){}
-      }
-    });
-  }
-
-
   function makeId(prefix,l,c){ return prefix+"-"+(l+1)+"-"+(c+1); }
 
     function makePlaceholders(){
-    disposeTileTextures();
     tilesF.length = 0;
     tilesB.length = 0;
     for (let r=0;r<ROWS;r++){
@@ -2192,21 +2190,12 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
     }
   }
     function sliceTile(img, r, c){
-    // iOS peut "perdre" des colonnes quand les coords sont flottantes.
-    // On calcule donc des bornes *entières* par arrondi cumulatif (x0/x1),
-    // ce qui garantit un pavage complet sans bandes vides.
     const iw = (img.naturalWidth || img.width || 0);
     const ih = (img.naturalHeight || img.height || 0);
-
-    const x0 = Math.round(((COLS - 1 - c)    ) * iw / COLS);
-    const x1 = Math.round(((COLS - 1 - c + 1)) * iw / COLS);
-    const y0 = Math.round(((ROWS - 1 - r)    ) * ih / ROWS);
-    const y1 = Math.round(((ROWS - 1 - r + 1)) * ih / ROWS);
-
-    const sx = Math.max(0, Math.min(iw-1, x0));
-    const sy = Math.max(0, Math.min(ih-1, y0));
-    const sw = Math.max(1, Math.min(iw - sx, x1 - x0));
-    const sh = Math.max(1, Math.min(ih - sy, y1 - y0));
+    const sw = iw / COLS;
+    const sh = ih / ROWS;
+    const sx = (COLS - 1 - c) * sw;
+    const sy = (ROWS - 1 - r) * sh;
 
     const can = document.createElement("canvas");
     can.width  = TILE_RES;
@@ -2214,6 +2203,7 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
     const ctx = can.getContext("2d");
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
+    // drawImage accepte des coordonnees flottantes; ceci evite des artefacts / lignes vides sur iOS
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TILE_RES, TILE_RES);
     return can;
   }
@@ -2904,16 +2894,10 @@ function updateTime(){
     trySaveBest(timerStoppedMs - gameStartMs);
 
     // Passage volontaire : le gamer clique "Niveau suivant"
-    // IMPORTANT iOS: éviter les doubles déclenchements (click + touchend + pointerup)
     if (nextBtn && !nextBtn.__bound){
       nextBtn.__bound = true;
-      let lastAdvanceAt = 0;
       const advance = (e)=>{
         try{ if (e){ e.preventDefault?.(); e.stopPropagation?.(); } }catch(_){}
-        const now = performance.now();
-        if (now - lastAdvanceAt < 500) return;
-        lastAdvanceAt = now;
-
         stopVictoryAnim();
         if (mixing) return;
         try{ grantModeRewardIfEligible(getLevelNumber1Based()); }catch(e){}
@@ -2935,7 +2919,9 @@ function updateTime(){
           try{ showToast?.("Erreur passage niveau"); }catch(_){}
         }
       };
-      nextBtn.addEventListener("click", advance, {passive:false});
+      nextBtn.addEventListener("click", advance);
+      nextBtn.addEventListener("touchend", advance, {passive:false});
+      nextBtn.addEventListener("pointerup", advance);
     }
 
   }
@@ -4036,9 +4022,12 @@ async function searchSwapV2_1_3(maxDepth = 7, options = {}) {
 // Alias pour compatibilité avec ton ancienne commande
 async function searchMoveX(K, maxDepth, options){
   return searchMoveK(K, maxDepth, options);
+
+// iOS/Safari: revenir depuis le cache (bfcache) ou rotation
+window.addEventListener('pageshow', ()=>{ try{ onResize(); }catch(e){} });
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ try{ onResize(); }catch(e){} } });
+
 }
-
-
 </script>
 
 <!-- Records Modal -->
