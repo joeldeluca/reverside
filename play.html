@@ -1669,7 +1669,13 @@ const AUDIO_STUB = {
   let playSpeedFactor  = 1.0;  // contrôlé par le slider "Vitesse"
   let playVolumeFactor = 0.8;  // contrôlé par le slider "Volume"
   // Résolution des “tuiles” affichées sur le cylindre
-  const TILE_RES = 1024;  // tu peux tester 768 si l’iPad rame
+  const TILE_RES = (()=>{
+    const ua = navigator.userAgent || "";
+    const isIPhone = /iPhone/i.test(ua);
+    if (isIPhone) return 512;
+    if (typeof __isIOS !== "undefined" && __isIOS) return 768;
+    return 1024;
+  })();
 
   function ensureAudio(){
     if (typeof AUDIO_DISABLED !== 'undefined' && AUDIO_DISABLED) return null;
@@ -2052,7 +2058,7 @@ function playScaleSolved(){
   const vh = vv? Math.round(vv.height): innerHeight;
   renderer.setSize(vw,vh);
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.25:2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, (isIOS && /iPhone/i.test(navigator.userAgent||""))?1: (isIOS?1.1:2)));
   renderer.setClearColor(0x000000,0);
   renderer.domElement.style.background='transparent';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -2129,9 +2135,21 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
   const idx = (r,c)=> r*COLS+c;
   let initFrontIds=[], initBackIds=[];
 
+  function disposeTileTextures(){
+    const arrays = [tilesF, tilesB];
+    arrays.forEach(a=>{
+      if (!a || !a.length) return;
+      for (const t of a){
+        try{ if (t && typeof t.dispose === "function") t.dispose(); }catch(e){}
+      }
+    });
+  }
+
+
   function makeId(prefix,l,c){ return prefix+"-"+(l+1)+"-"+(c+1); }
 
     function makePlaceholders(){
+    disposeTileTextures();
     tilesF.length = 0;
     tilesB.length = 0;
     for (let r=0;r<ROWS;r++){
