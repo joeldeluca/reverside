@@ -1176,6 +1176,17 @@ function stopAllAudio(){
 
 (function(){
   const ov = document.getElementById("overlay");
+
+  // Robust boot on Safari/iOS: local scripts can load before bootGame is defined.
+  // Keep a single boot-attempt function and call it from multiple places.
+  window.__RS_TRY_BOOT__ = window.__RS_TRY_BOOT__ || function(){
+    try{
+      if (window.__THREE_READY__ && typeof window.bootGame === "function" && !window.__BOOTED__){
+        window.__BOOTED__ = true;
+        try{ window.bootGame(); }catch(e){ console.error(e); }
+      }
+    }catch(e){ console.error(e); }
+  };
   const srcs = [
     "./three.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js",
@@ -1187,10 +1198,8 @@ function stopAllAudio(){
     if (window.THREE){
       ov.classList.remove("show");
       window.__THREE_READY__ = true;
-      if (typeof window.bootGame === "function" && !window.__BOOTED__){
-        window.__BOOTED__ = true;
-        if(!window.__RS_BOOTED__){ window.__RS_BOOTED__=true; try{ bootGame(); }catch(e){ console.error(e); } }
-      }
+      // Attempt boot now (and also later via listeners below)
+      window.__RS_TRY_BOOT__();
       return;
     }
     if (i>=srcs.length){
@@ -1206,6 +1215,14 @@ function stopAllAudio(){
   setTimeout(()=>{ if(!window.THREE) ov.classList.add("show"); },2500);
   step();
 })();
+
+// Also attempt boot when DOM is ready and on full load (covers Safari/iOS timing differences)
+document.addEventListener('DOMContentLoaded', function(){
+  if (window.__RS_TRY_BOOT__) window.__RS_TRY_BOOT__();
+});
+window.addEventListener('load', function(){
+  if (window.__RS_TRY_BOOT__) window.__RS_TRY_BOOT__();
+});
 
 
 
