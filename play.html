@@ -4022,12 +4022,11 @@ async function searchSwapV2_1_3(maxDepth = 7, options = {}) {
 // Alias pour compatibilité avec ton ancienne commande
 async function searchMoveX(K, maxDepth, options){
   return searchMoveK(K, maxDepth, options);
+}
 
 // iOS/Safari: revenir depuis le cache (bfcache) ou rotation
 window.addEventListener('pageshow', ()=>{ try{ onResize(); }catch(e){} });
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ try{ onResize(); }catch(e){} } });
-
-}
 </script>
 
 <!-- Records Modal -->
