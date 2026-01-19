@@ -494,6 +494,8 @@
     #bottomBar .row{
       flex-direction:row;
       justify-content:center;
+      flex-wrap:wrap;
+      gap:8px;
     }
   }
 
@@ -3376,12 +3378,23 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
   const bindTap = (el, fn)=>{
     if (!el) return;
     if (__isTouch) {
+      // iOS/Safari can fire both touch and click OR occasionally miss touchend.
+      // We execute on touchend (preferred) and allow click as a fallback.
+      // If a click arrives shortly after a touch, we ignore it to avoid double-actions.
+      let lastTouchTs = 0;
       el.addEventListener('touchend', (ev)=>{
+        lastTouchTs = Date.now();
         try { ev.preventDefault(); ev.stopPropagation(); } catch(e) {}
         fn(ev);
       }, {passive:false});
-      // Safety: if iOS still emits a click, ignore it.
-      el.addEventListener('click', (ev)=>{ try{ev.preventDefault();}catch(e){} }, {passive:false});
+      el.addEventListener('click', (ev)=>{
+        const now = Date.now();
+        if (lastTouchTs && (now - lastTouchTs) < 700) {
+          try { ev.preventDefault(); ev.stopPropagation(); } catch(e) {}
+          return;
+        }
+        fn(ev);
+      }, {passive:false});
     } else {
       el.addEventListener('click', fn);
     }
