@@ -257,7 +257,7 @@
   }
 
   /* Panneau options (Mélange / Reset / Images) – à DROITE de l'écran */
-  #sidePanel{z-index:9999;
+  #sidePanel{
     position:fixed;
     top:90px;
     right:16px;
@@ -864,29 +864,6 @@ canvas.webgl { width: 100vw; height: 100svh; }
 @media (max-width: 780px){
   #legalFooter{ display:none !important; }
 }
-
-/* v164: mobile layout + safe-area */
-@media (max-width: 700px){
-  .hint{ max-width: 90vw; font-size: 13px; padding: 10px 12px; }
-  #leftPanel{ position: fixed; left: 10px; top: auto; bottom: calc(12px + env(safe-area-inset-bottom)); transform: none; }
-  #bottomBar{ position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); display:flex; gap:10px; justify-content:center; }
-  #fab{ bottom: calc(16px + env(safe-area-inset-bottom)); right: 14px; }
-  #sidePanel{ width: min(92vw, 420px); max-height: 70vh; right: 10px; top: 90px; }
-}
-/* Make sure UI sits above canvas on iOS */
-#leftPanel, #bottomBar, #sidePanel, #winBadge, #fab { z-index: 50; }
-canvas { touch-action: none; }
-
-
-/* v164 mobile safety */
-@media (max-width: 520px){
-  .hint{ bottom: calc(env(safe-area-inset-bottom) + 96px); font-size:12px; padding:10px 12px; }
-  #sidePanel{ width: min(92vw, 420px); right: 4vw; }
-  #fabMain{ bottom: calc(env(safe-area-inset-bottom) + 20px); }
-  .watermark{ display:none !important; }
-}
-body.solved #sidePanel, body.solved #fabMain{ pointer-events:auto !important; opacity:1 !important; }
-
 </style>
 </head>
 <body>
@@ -1160,9 +1137,6 @@ body.solved #sidePanel, body.solved #fabMain{ pointer-events:auto !important; op
 </div>
 
 <script>
-// Global helpers (safe for double-load)
-window.byId = window.byId || function(id){ return document.getElementById(id); };
-
 function stopAllAudio(){
   try{
     if (typeof audioCtx !== 'undefined' && audioCtx){
@@ -1176,17 +1150,6 @@ function stopAllAudio(){
 
 (function(){
   const ov = document.getElementById("overlay");
-
-  // Robust boot on Safari/iOS: local scripts can load before bootGame is defined.
-  // Keep a single boot-attempt function and call it from multiple places.
-  window.__RS_TRY_BOOT__ = window.__RS_TRY_BOOT__ || function(){
-    try{
-      if (window.__THREE_READY__ && typeof window.bootGame === "function" && !window.__BOOTED__){
-        window.__BOOTED__ = true;
-        try{ window.bootGame(); }catch(e){ console.error(e); }
-      }
-    }catch(e){ console.error(e); }
-  };
   const srcs = [
     "./three.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js",
@@ -1198,8 +1161,10 @@ function stopAllAudio(){
     if (window.THREE){
       ov.classList.remove("show");
       window.__THREE_READY__ = true;
-      // Attempt boot now (and also later via listeners below)
-      window.__RS_TRY_BOOT__();
+      if (typeof window.bootGame === "function" && !window.__BOOTED__){
+        window.__BOOTED__ = true;
+        window.bootGame();
+      }
       return;
     }
     if (i>=srcs.length){
@@ -1215,14 +1180,6 @@ function stopAllAudio(){
   setTimeout(()=>{ if(!window.THREE) ov.classList.add("show"); },2500);
   step();
 })();
-
-// Also attempt boot when DOM is ready and on full load (covers Safari/iOS timing differences)
-document.addEventListener('DOMContentLoaded', function(){
-  if (window.__RS_TRY_BOOT__) window.__RS_TRY_BOOT__();
-});
-window.addEventListener('load', function(){
-  if (window.__RS_TRY_BOOT__) window.__RS_TRY_BOOT__();
-});
 
 
 
@@ -1245,14 +1202,12 @@ var currentLevelIndex = window.currentLevelIndex; // 0-based
 // ----------------------------------------------
 
 // --- Safe storage wrapper (prevents iOS/Safari SecurityError in private mode) ---
-var LS = window.LS || {
+const LS = {
   get(k){ try{ return window.localStorage.getItem(k); }catch(e){ return null; } },
   set(k,v){ try{ window.localStorage.setItem(k, v); }catch(e){} },
   remove(k){ try{ window.localStorage.removeItem(k); }catch(e){} },
   clear(){ try{ window.localStorage.clear(); }catch(e){} },
 };
-window.LS = LS;
-
 
 // Indique si un Mélange a été fait depuis le dernier reset / changement de niveau
 let hasMixedSinceReset = false;
@@ -1446,14 +1401,43 @@ function updateSeedHUD(){
 }
 // ====== /SEED ======
 
-
-function byId(id){ return document.getElementById(id); }
 function bootGame(){
   
   // Seed init (défi)
   ensureSeedInit();
   updateSeedHUD();
-  const byId = window.byId;
+const byId = id => document.getElementById(id);
+
+  // iOS Safari: sécurise les clics (fallback touch -> click)
+  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
+    window.__IOS_TOUCH_CLICK_PATCH__ = true;
+    document.addEventListener("touchend", function(ev){
+      const btn = ev && ev.target && ev.target.closest ? ev.target.closest("button") : null;
+      if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      try{ btn.click(); }catch(e){}
+    }, {passive:false, capture:true});
+  }
+
+  let victorySoundOn = true; // toggle sons victoire
+
+  // --- option : sons de victoire ---
+  try{
+    const v = LS.get('reverside_victory_on');
+    if (v !== null) victorySoundOn = (v === '1');
+  }catch(e){}
+  const victoryChk = byId('victorySound');
+  if (victoryChk){
+    victoryChk.checked = !!victorySoundOn;
+    victoryChk.addEventListener('change', ()=>{
+      victorySoundOn = !!victoryChk.checked;
+      try{ LS.set('reverside_victory_on', victorySoundOn ? '1' : '0'); }catch(e){}
+    });
+  }
+
+
   // --- MOTEUR AUDIO : une note par barrette + Hymne à la joie ---
   
 let audioCtx = null;
@@ -1684,7 +1668,7 @@ const AUDIO_STUB = {
   let playSpeedFactor  = 1.0;  // contrôlé par le slider "Vitesse"
   let playVolumeFactor = 0.8;  // contrôlé par le slider "Volume"
   // Résolution des “tuiles” affichées sur le cylindre
-  const TILE_RES = 1024;  // tu peux tester 768 si l’iPad rame
+  const TILE_RES = __isIOS ? 512 : 1024;  // 512 on iOS to reduce GPU memory
 
   function ensureAudio(){
     if (typeof AUDIO_DISABLED !== 'undefined' && AUDIO_DISABLED) return null;
@@ -2060,25 +2044,14 @@ function playScaleSolved(){
 
 
   const cv = byId("cv");
-  var isIOS = (window.__RS_IS_IOS__!==undefined) ? window.__RS_IS_IOS__ : (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1)); window.__RS_IS_IOS__ = isIOS;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
   const renderer = new THREE.WebGLRenderer({antialias:false,canvas:cv,alpha:true,powerPreference:"high-performance"});
-    // iOS stability: cap devicePixelRatio to reduce WebGL memory pressure
-    try{
-      var isIOS = (window.__RS_IS_IOS__!==undefined) ? window.__RS_IS_IOS__ : (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1)); window.__RS_IS_IOS__ = isIOS;
-      const dpr = Math.min(window.devicePixelRatio||1, isIOS ? 1.5 : 2);
-      renderer.setPixelRatio(dpr);
-    }catch(e){}
 
-    // WebGL context loss handler (iOS can kill the context on memory pressure)
-    const canvas = renderer.domElement;
-    canvas.addEventListener('webglcontextlost', (e)=>{
-      try{ e.preventDefault(); }catch(_){}
-      console.warn('WebGL context lost');
-    }, false);
-    canvas.addEventListener('webglcontextrestored', ()=>{
-      console.warn('WebGL context restored');
-      try{ onWindowResize(); }catch(_){}
-    }, false);
+  // WebGL context loss handling (mobile Safari can drop context under memory pressure)
+  try{
+    cv.addEventListener('webglcontextlost', (e)=>{ e.preventDefault(); console.warn('WebGL context lost'); }, false);
+    cv.addEventListener('webglcontextrestored', ()=>{ console.warn('WebGL context restored'); try{ bootGame(); }catch(e){} }, false);
+  }catch(e){}
 
   const vv = window.visualViewport;
   const vw = vv? Math.round(vv.width): innerWidth;
@@ -2127,11 +2100,12 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
   root.frustumCulled=false;
   scene.add(root);
 
-  const MAX_ANISO = renderer.capabilities.getMaxAnisotropy();
+  const MAX_ANISO = isIOS ? 1 : renderer.capabilities.getMaxAnisotropy();
   function tuneTex(t){
     if (!t) return;
     t.colorSpace = THREE.SRGBColorSpace;
-    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.generateMipmaps = false;
+    t.minFilter = THREE.LinearFilter;
     t.magFilter = THREE.LinearFilter;
     t.anisotropy = MAX_ANISO;
     t.needsUpdate = true;
@@ -2907,8 +2881,7 @@ function updateTime(){
     if (currentMode === "chrono"){
       timeBankSec = Math.max(0, Math.floor(timeBaseLeftSec + timeBankLeftSec));
     }
-
-    trySaveBest(timerStoppedMs - gameStartMs);
+      try{ trySaveBest(timerStoppedMs - gameStartMs); }catch(e){ console.warn('save best failed',e); }
 
     // Passage volontaire : le gamer clique "Niveau suivant"
     if (nextBtn && !nextBtn.__bound){
@@ -3517,10 +3490,10 @@ if (modeSel){
 
     makePlaceholders();
     buildBars();
+    if (frontImg || backImg) rebuildTextures();
     applyTextures();
     layoutAll();
     snapshotInitial();
-    if (frontImg || backImg) rebuildTextures();
 
     moves=0; byId("moves").textContent="0";
     timerStoppedMs=null;
@@ -4041,9 +4014,7 @@ async function searchMoveX(K, maxDepth, options){
   return searchMoveK(K, maxDepth, options);
 }
 
-// iOS/Safari: revenir depuis le cache (bfcache) ou rotation
-window.addEventListener('pageshow', ()=>{ try{ onResize(); }catch(e){} });
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ try{ onResize(); }catch(e){} } });
+
 </script>
 
 <!-- Records Modal -->
