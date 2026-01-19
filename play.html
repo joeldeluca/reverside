@@ -3370,12 +3370,21 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
     };
   }
 
-  // iOS Safari can be finicky with 'click' on fixed overlays; bind touch/pointer too.
+  // Bind a single "tap" action without double-firing on desktop (click + pointer).
+  // Desktop: click only. Touch devices: touchend only (and prevent the synthetic click).
+  const __isTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
   const bindTap = (el, fn)=>{
     if (!el) return;
-    el.addEventListener('click', fn);
-    el.addEventListener('touchstart', (ev)=>{ try{ev.preventDefault();}catch(e){} fn(ev); }, {passive:false});
-    el.addEventListener('pointerdown', (ev)=>{ try{ev.preventDefault();}catch(e){} fn(ev); }, {passive:false});
+    if (__isTouch) {
+      el.addEventListener('touchend', (ev)=>{
+        try { ev.preventDefault(); ev.stopPropagation(); } catch(e) {}
+        fn(ev);
+      }, {passive:false});
+      // Safety: if iOS still emits a click, ignore it.
+      el.addEventListener('click', (ev)=>{ try{ev.preventDefault();}catch(e){} }, {passive:false});
+    } else {
+      el.addEventListener('click', fn);
+    }
   };
 
   const colUpBtn   = byId("colUp");
@@ -4757,6 +4766,9 @@ async function searchMoveX(K, maxDepth, options){
   }
 
   function init(){
+    // Safety guard: prevent double init (double event bindings => doubled moves on some browsers)
+    if (window.__RS_INIT_DONE__) return;
+    window.__RS_INIT_DONE__ = true;
     // If panel is missing for any reason, do nothing (game still works).
     wireFlags();
 
