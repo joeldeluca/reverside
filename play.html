@@ -891,9 +891,36 @@ canvas.webgl { width: 100vw; height: 100svh; }
     #rotationsPanel{ transform: scale(0.92); transform-origin: left center; }
   }
 
+/* iPhone paysage: on force le mode portrait pour éviter les superpositions d'UI */
+#landscapeBlock{
+  position: fixed; inset: 0; z-index: 100000;
+  display:none; align-items:center; justify-content:center;
+  background: rgba(10,15,25,.92);
+  color:#fff; text-align:center; padding:24px;
+}
+#landscapeBlock .box{
+  max-width: 520px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 18px;
+  padding: 18px 18px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+}
+#landscapeBlock .t1{ font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+#landscapeBlock .t2{ font-size: 14px; opacity: .9; line-height: 1.35; }
+
 </style>
 </head>
 <body>
+
+<div id="landscapeBlock" aria-hidden="true">
+  <div class="box">
+    <div class="t1">Tournez l'iPhone en mode vertical</div>
+    <div class="t2">Le mode paysage sur iPhone n'est pas encore optimisé.
+    Pour jouer confortablement, utilisez le mode portrait.</div>
+  </div>
+</div>
+
 
 <!-- Public UI additions (About / Feedback) -->
 <div id="publicTopBtns" style="position:fixed; right:12px; top:12px; z-index:9999; display:flex; gap:8px; flex-wrap:wrap;">
@@ -2091,6 +2118,32 @@ function playScaleSolved(){
     const vv = window.visualViewport;
     const vw = vv? Math.round(vv.width): innerWidth;
     const vh = vv? Math.round(vv.height): innerHeight;
+
+    // iPhone paysage : bloquer (UI trop serrée et superpositions)
+    try {
+      const lb = document.getElementById("landscapeBlock");
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const isLandscape = vw > vh;
+      const tight = isIOS && isLandscape && vh < 520;
+      if (lb) {
+        lb.style.display = tight ? "flex" : "none";
+        lb.setAttribute("aria-hidden", tight ? "false" : "true");
+      }
+    } catch (e) {}
+
+
+    // iPhone paysage : bloquer (UI trop serrée et superpositions)
+    try {
+      const lb = document.getElementById("landscapeBlock");
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const isLandscape = vw > vh;
+      const tight = isIOS && isLandscape && vh < 520;
+      if (lb) {
+        lb.style.display = tight ? "flex" : "none";
+        lb.setAttribute("aria-hidden", tight ? "false" : "true");
+      }
+    } catch(e) {}
+
     const {top, bottom} = getUIHeights();
     const ch = Math.max(120, vh - top - bottom);
 
@@ -3547,7 +3600,8 @@ if (modeSel){
 
     makePlaceholders();
     buildBars();
-    if (frontImg || backImg) rebuildTextures();
+    // Re-charge images persist00e9es 00e0 chaque niveau (corrige perte de textures apr00e8s changement de niveau)
+    try{ restoreImages(); }catch(e){}
     applyTextures();
     layoutAll();
     snapshotInitial();
