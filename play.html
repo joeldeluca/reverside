@@ -248,7 +248,7 @@
   /* v168: keep FAB away from Col buttons on iPhone */
   @media (max-width: 520px){
     #fabMain{ bottom:auto; top: calc(80px + env(safe-area-inset-top)); right: 12px; }
-    #sidePanel{ z-index: 1200; }
+    #sidePanel{ z-index: 100000; }
     #leftPanel{ z-index: 1100; }
     #bottomBar{ z-index: 1100; }
   }
@@ -846,8 +846,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
   #winBadge.show{ pointer-events:auto; }
   #nextLevelBtn{ pointer-events:auto; }
   body.solved #bottomBar,
-  body.solved #sidePanel,
-  body.solved #fabMain{
+  body.solved #sidePanel{
     pointer-events:none;
     opacity:0.65;
   }
@@ -917,7 +916,173 @@ canvas.webgl { width: 100vw; height: 100svh; }
 #landscapeBlock .t1{ font-size: 18px; font-weight: 700; margin-bottom: 10px; }
 #landscapeBlock .t2{ font-size: 14px; opacity: .9; line-height: 1.35; }
 
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+ (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+ (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+ (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+ (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+ (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+ (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+ (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+ (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+@media (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
 </style>
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+@media (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
+
+/* When side panel is open on mobile, make sure nothing sits above it */
+body.sideOpen #langSwitcher,
+body.sideOpen #topBar,
+body.sideOpen #topBar2,
+body.sideOpen #topBar3,
+body.sideOpen #winBadge{
+  pointer-events:none !important;
+}
+
+@media (max-width: 480px){
+  /* Keep space for the floating menu button on the right */
+  #bottomBar{ right: 76px; }
+  #fabMain{ right: 10px; bottom: 110px; }
+}
 </head>
 <body>
 
@@ -3516,7 +3681,10 @@ runOver = false;
   const menuBtnMain = byId("menuBtnMain");
   const sidePanel   = byId("sidePanel");
   if (menuBtnMain && sidePanel){
-    menuBtnMain.onclick = ()=> sidePanel.classList.toggle("show");
+    menuBtnMain.onclick = ()=>{
+      sidePanel.classList.toggle("show");
+      document.body.classList.toggle("sideOpen", sidePanel.classList.contains("show"));
+    };
   }
 
 const modeSel = byId("modeSel");
