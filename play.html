@@ -864,6 +864,33 @@ canvas.webgl { width: 100vw; height: 100svh; }
 @media (max-width: 780px){
   #legalFooter{ display:none !important; }
 }
+
+
+  /* iPhone landscape: reduce HUD height to keep cylinder visible */
+  @media (max-height: 450px){
+    #topBar, #modeBar, #lifeBar, #trophyBar{
+      padding: 6px 10px;
+      border-radius: 18px;
+    }
+    #modeBar{ font-size: 18px; }
+    #topBar{ font-size: 13px; }
+    #lifeBar{ font-size: 18px; }
+    #trophyBar{ font-size: 14px; }
+    #hudWrap{ top: 8px; }
+    #bottomBar{
+      padding: 8px 10px;
+      gap: 12px;
+      border-radius: 22px;
+    }
+    #sidePanel{
+      top: 8px;
+      right: 8px;
+      width: min(92vw, 360px);
+      max-height: 88vh;
+    }
+    #rotationsPanel{ transform: scale(0.92); transform-origin: left center; }
+  }
+
 </style>
 </head>
 <body>
@@ -1925,11 +1952,12 @@ function playScaleSolved(){
   ];
   // currentLevelIndex is declared as a global var near the top (to avoid TDZ issues).
 
+  const STORAGE_NS = 'reverside_v166';
   const LS_KEYS = {
-    FRONT:"reverside_front_dataurl",
-    BACK:"reverside_back_dataurl",
-    SAME:"reverside_same_fb",
-    BOFF:"reverside_back_offset"
+    FRONT:`${STORAGE_NS}_front_dataurl`,
+    BACK:`${STORAGE_NS}_back_dataurl`,
+    SAME:`${STORAGE_NS}_same_fb`,
+    BOFF:`${STORAGE_NS}_back_offset`
   };
 
   let frontImg = null, backImg = null;
@@ -2213,7 +2241,12 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     // drawImage accepte des coordonnees flottantes; ceci evite des artefacts / lignes vides sur iOS
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TILE_RES, TILE_RES);
+    // Mais Safari iOS peut parfois rendre une tuile noire si le rectangle source depasse l'image d'un epsilon.
+    const sx0 = Math.max(0, Math.min(iw-1, sx));
+    const sy0 = Math.max(0, Math.min(ih-1, sy));
+    const sw0 = Math.max(1, Math.min(sw, iw - sx0));
+    const sh0 = Math.max(1, Math.min(sh, ih - sy0));
+    ctx.drawImage(img, sx0, sy0, sw0, sh0, 0, 0, TILE_RES, TILE_RES);
     return can;
   }
 
@@ -4735,7 +4768,7 @@ async function searchMoveX(K, maxDepth, options){
 
 <script>
 (function(){
-  const VERSION_PUBLIC = "v140-public";
+  const VERSION_PUBLIC = "v166";
 
   const btnAbout = document.getElementById("btnAbout");
   const btnFeedback = document.getElementById("btnFeedback");
