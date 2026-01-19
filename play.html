@@ -1257,7 +1257,7 @@ body.sideOpen #winBadge{
 <div class="hint">Glisser pour tourner • Molette / pincement pour zoomer • Double-tap pour recentrer</div>
 
 <!-- Bouton ⋮ et panneau de droite -->
-<div id="fabMain"><button id="menuBtnMain" class="fab" aria-label="Options" onclick="window.toggleSidePanel && window.toggleSidePanel();">⋮</button></div>
+<div id="fabMain"><button id="menuBtnMain" class="fab" aria-label="Options" >⋮</button></div>
 
 <div id="sidePanel">
   <!-- Groupe Mélange / Reset -->
@@ -5225,6 +5225,61 @@ try {
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run);
   else run();
+})();
+</script>
+
+
+<!-- V172_SIDE_PANEL_BINDING -->
+<script>
+(() => {
+  const openCls = 'show';
+  function setOpen(open){
+    const panel = document.getElementById('sidePanel');
+    const ov    = document.getElementById('overlay');
+    if (!panel || !ov) return;
+    panel.classList.toggle(openCls, !!open);
+    ov.classList.toggle(openCls, !!open);
+    document.body.classList.toggle('sideOpen', !!open);
+  }
+  function toggle(){
+    const panel = document.getElementById('sidePanel');
+    if (!panel) return;
+    setOpen(!panel.classList.contains(openCls));
+  }
+  function bind(){
+    const btn = document.getElementById('menuBtnMain');
+    if (!btn) return;
+    // Ensure this binding is idempotent
+    if (btn.__reversideBound) return;
+    btn.__reversideBound = true;
+
+    const handler = (e) => {
+      try {
+        if (e) { e.preventDefault?.(); e.stopPropagation?.(); }
+        toggle();
+      } catch(_){}
+    };
+
+    btn.addEventListener('click', handler, true);
+    btn.addEventListener('touchend', handler, {passive:false, capture:true});
+
+    const ov = document.getElementById('overlay');
+    if (ov && !ov.__reversideBound){
+      ov.__reversideBound = true;
+      ov.addEventListener('click', () => setOpen(false), true);
+      ov.addEventListener('touchend', () => setOpen(false), {passive:false, capture:true});
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind, {once:true});
+  } else {
+    bind();
+  }
+  // Also bind again after boot in case DOM was rewritten
+  window.addEventListener('load', bind, {once:false});
+  // Expose for any remaining inline handlers
+  window.setSidePanelOpen = window.setSidePanelOpen || setOpen;
+  window.toggleSidePanel  = window.toggleSidePanel  || toggle;
 })();
 </script>
 
