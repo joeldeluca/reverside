@@ -244,6 +244,14 @@
     bottom:24px;
     z-index:950;
   }
+
+  /* v168: keep FAB away from Col buttons on iPhone */
+  @media (max-width: 520px){
+    #fabMain{ bottom:auto; top: calc(80px + env(safe-area-inset-top)); right: 12px; }
+    #sidePanel{ z-index: 1200; }
+    #leftPanel{ z-index: 1100; }
+    #bottomBar{ z-index: 1100; }
+  }
   #fabMain > button{
     width:40px;
     height:40px;
@@ -273,7 +281,7 @@
 
     display:none;
     overflow:auto;
-    z-index:900;
+    z-index:1200;
   }
   #sidePanel.show{
     display:block;
@@ -2102,7 +2110,21 @@ function playScaleSolved(){
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
   const renderer = new THREE.WebGLRenderer({antialias:false,canvas:cv,alpha:true,powerPreference:"high-performance"});
 
-  // WebGL context loss handling (mobile Safari can drop context under memory pressure)
+  
+  // v168: prevent canvas handlers from hijacking UI taps (iPhone Safari)
+  (function(){
+    const uiIds = ["sidePanel","bottomBar","leftPanel","fabMain","top"]; 
+    const evs = ["pointerdown","pointerup","touchstart","touchend","click"]; 
+    uiIds.forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      evs.forEach(ev=>{
+        el.addEventListener(ev, (e)=>{ e.stopPropagation(); }, true);
+      });
+    });
+  })();
+
+// WebGL context loss handling (mobile Safari can drop context under memory pressure)
   try{
     cv.addEventListener('webglcontextlost', (e)=>{ e.preventDefault(); console.warn('WebGL context lost'); }, false);
     cv.addEventListener('webglcontextrestored', ()=>{ console.warn('WebGL context restored'); try{ bootGame(); }catch(e){} }, false);
@@ -2124,7 +2146,7 @@ function playScaleSolved(){
       const lb = document.getElementById("landscapeBlock");
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const isLandscape = vw > vh;
-      const tight = isIOS && isLandscape && vh < 520;
+      const tight = isIOS && isLandscape && vw < 980;
       if (lb) {
         lb.style.display = tight ? "flex" : "none";
         lb.setAttribute("aria-hidden", tight ? "false" : "true");
@@ -2137,7 +2159,7 @@ function playScaleSolved(){
       const lb = document.getElementById("landscapeBlock");
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const isLandscape = vw > vh;
-      const tight = isIOS && isLandscape && vh < 520;
+      const tight = isIOS && isLandscape && vw < 980;
       if (lb) {
         lb.style.display = tight ? "flex" : "none";
         lb.setAttribute("aria-hidden", tight ? "false" : "true");
@@ -3338,11 +3360,10 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   // Mobile: toggle visibility of the Rotations block to free screen space
   const rotToggleBtn = byId("rotToggleBtn");
-  if (rotToggleBtn){
-    rotToggleBtn.onclick = ()=>{
-      document.body.classList.toggle('showRot');
-    };
-  }
+  const rotBlockBtn  = byId("rotBlockBtn");
+  const toggleRot = ()=>{ document.body.classList.toggle('showRot'); };
+  if (rotToggleBtn) rotToggleBtn.onclick = toggleRot;
+  if (rotBlockBtn)  rotBlockBtn.onclick  = (e)=>{ e.preventDefault(); toggleRot(); };
 
   const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
@@ -4935,6 +4956,30 @@ try {
     }, 600);
   }
 } catch(e) {}
+</script>
+
+<script>
+// v168: ui event shield (iPhone Safari)
+(function(){
+  function shield(el){
+    if(!el) return;
+    const evs=['pointerdown','pointerup','pointermove','touchstart','touchend','touchmove','click'];
+    evs.forEach((evt)=>{
+      el.addEventListener(evt, function(e){
+        // Do not let canvas/orbit controls steal UI touches.
+        e.stopPropagation();
+      }, true);
+    });
+  }
+  function run(){
+    shield(document.getElementById('sidePanel'));
+    shield(document.getElementById('bottomBar'));
+    shield(document.getElementById('leftPanel'));
+    shield(document.getElementById('rotWheel'));
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
 </script>
 
 </body>
