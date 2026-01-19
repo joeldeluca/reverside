@@ -242,7 +242,7 @@
     position:fixed;
     right:16px;
     bottom:24px;
-    z-index:950;
+    z-index:200000;
   }
 
   /* v168: keep FAB away from Col buttons on iPhone */
@@ -1257,7 +1257,7 @@ body.sideOpen #winBadge{
 <div class="hint">Glisser pour tourner • Molette / pincement pour zoomer • Double-tap pour recentrer</div>
 
 <!-- Bouton ⋮ et panneau de droite -->
-<div id="fabMain"><button id="menuBtnMain">⋮</button></div>
+<div id="fabMain"><button id="menuBtnMain" class="fab" aria-label="Options" onclick="toggleSidePanel()">⋮</button></div>
 
 <div id="sidePanel">
   <!-- Groupe Mélange / Reset -->
@@ -1634,6 +1634,27 @@ function bootGame(){
   ensureSeedInit();
   updateSeedHUD();
 const byId = id => document.getElementById(id);
+
+// -------------------------
+// Side panel (Options)
+// -------------------------
+function setSidePanelOpen(open){
+  const panel = byId('sidePanel');
+  if(!panel) return;
+  const isOpen = !!open;
+  panel.classList.toggle('show', isOpen);
+  document.body.classList.toggle('sideOpen', isOpen);
+}
+
+function toggleSidePanel(){
+  const panel = byId('sidePanel');
+  if(!panel) return;
+  setSidePanelOpen(!panel.classList.contains('show'));
+}
+
+// Expose for inline handlers (iOS Safari is strict about scope in some cases)
+window.setSidePanelOpen = setSidePanelOpen;
+window.toggleSidePanel = toggleSidePanel;
 
   // iOS Safari: sécurise les clics (fallback touch -> click)
   const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
@@ -5122,6 +5143,14 @@ try {
       const b = document.getElementById('helpBtn');
       if (b) b.click();
     }, 600);
+
+    // Remove the flag so a refresh on iPhone/iPad does not keep forcing the help screen.
+    q.delete('help');
+    const newQs = q.toString();
+    const clean = location.pathname + (newQs ? ('?' + newQs) : '') + location.hash;
+    if (typeof history !== 'undefined' && history.replaceState) {
+      history.replaceState(null, '', clean);
+    }
   }
 } catch(e) {}
 </script>
@@ -5131,7 +5160,9 @@ try {
 (function(){
   function shield(el){
     if(!el) return;
-    const evs=['pointerdown','pointerup','pointermove','touchstart','touchend','touchmove','click'];
+    // Do not block 'click'/'touchend' because some UI buttons rely on event bubbling.
+    // We only prevent pointer/touch interactions from leaking to the 3D canvas handlers.
+    const evs=['pointerdown','pointermove','touchstart','touchmove'];
     evs.forEach((evt)=>{
       el.addEventListener(evt, function(e){
         // Do not let canvas/orbit controls steal UI touches.
