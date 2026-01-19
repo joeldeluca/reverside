@@ -3528,13 +3528,27 @@ runOver = false;
   const menuBtnMain = byId("menuBtnMain");
   const sidePanel   = byId("sidePanel");
   if (menuBtnMain && sidePanel){
+    // iOS Safari triggers multiple event types (touch/click/pointer) for the same gesture.
+    // If we listen to more than one, the panel can open then immediately close.
+    let _lastPanelToggleTs = 0;
     const togglePanel = (ev)=>{
-      try{ ev && ev.preventDefault && ev.preventDefault(); }catch(e){}
+      try{
+        if (ev){
+          ev.preventDefault && ev.preventDefault();
+          ev.stopPropagation && ev.stopPropagation();
+        }
+      }catch(e){}
+      const now = Date.now();
+      if (now - _lastPanelToggleTs < 350) return; // de-dupe bursts
+      _lastPanelToggleTs = now;
       sidePanel.classList.toggle("show");
     };
-    menuBtnMain.onclick = togglePanel;
-    menuBtnMain.addEventListener('touchstart', togglePanel, {passive:false});
-    menuBtnMain.addEventListener('pointerdown', togglePanel, {passive:false});
+    // Prefer pointer events when available; keep click as a safe fallback.
+    menuBtnMain.addEventListener('pointerup', togglePanel, {passive:false});
+    menuBtnMain.addEventListener('click', togglePanel, {passive:false});
+    // Prevent clicks inside the panel from bubbling to any global handlers.
+    sidePanel.addEventListener('pointerdown', e=>{ try{e.stopPropagation();}catch(_){} }, {passive:true});
+    sidePanel.addEventListener('click', e=>{ try{e.stopPropagation();}catch(_){} }, {passive:true});
   }
 const modeSel = byId("modeSel");
 if (modeSel){
