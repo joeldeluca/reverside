@@ -2053,10 +2053,32 @@ function playScaleSolved(){
     cv.addEventListener('webglcontextrestored', ()=>{ console.warn('WebGL context restored'); try{ bootGame(); }catch(e){} }, false);
   }catch(e){}
 
-  const vv = window.visualViewport;
-  const vw = vv? Math.round(vv.width): innerWidth;
-  const vh = vv? Math.round(vv.height): innerHeight;
-  renderer.setSize(vw,vh);
+  function getUIHeights(){
+    const top = byId("top")?.getBoundingClientRect().height || 0;
+    const bottom = byId("bottomBar")?.getBoundingClientRect().height || 0;
+    return {top, bottom};
+  }
+
+  function applyStageSize(){
+    const vv = window.visualViewport;
+    const vw = vv? Math.round(vv.width): innerWidth;
+    const vh = vv? Math.round(vv.height): innerHeight;
+    const {top, bottom} = getUIHeights();
+    const ch = Math.max(120, vh - top - bottom);
+
+    // On force le canvas à rester en dessous des barres UI (utile sur iPhone en paysage)
+    cv.style.position = "fixed";
+    cv.style.left = "0px";
+    cv.style.top = Math.round(top) + "px";
+    cv.style.width = vw + "px";
+    cv.style.height = ch + "px";
+
+    renderer.setSize(vw, ch, false);
+    camera.aspect = vw / ch;
+    camera.updateProjectionMatrix();
+  }
+
+  // On appliquera la taille réelle après création de la caméra.
 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.25:2));
   renderer.setClearColor(0x000000,0);
@@ -2066,9 +2088,11 @@ function playScaleSolved(){
   renderer.toneMappingExposure = 1.18;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(55,(vw/vh),0.05,2000);
+  const camera = new THREE.PerspectiveCamera(55,1,0.05,2000);
   camera.position.set(0,0.25,VIEW.zoom);
   scene.add(camera);
+
+  applyStageSize();
 
   scene.add(new THREE.AmbientLight(0xffffff,0.36));
   const dir = new THREE.DirectionalLight(0xffffff,1.65);
@@ -2080,18 +2104,12 @@ function playScaleSolved(){
   const hemi = new THREE.HemisphereLight(0xffffff,0x101018,0.9);
   scene.add(hemi);
 
-  window.addEventListener("resize", ()=>{
-    const vv2 = window.visualViewport;
-  const rw = vv2? Math.round(vv2.width): innerWidth;
-  const rh = vv2? Math.round(vv2.height): innerHeight;
-  camera.aspect = rw/rh;
-    camera.updateProjectionMatrix();
-    const vv = window.visualViewport;
-  const vw = vv? Math.round(vv.width): innerWidth;
-  const vh = vv? Math.round(vv.height): innerHeight;
-  renderer.setSize(vw,vh);
-
-  });
+  window.addEventListener("resize", applyStageSize);
+  if (window.visualViewport){
+    window.visualViewport.addEventListener("resize", applyStageSize);
+    window.visualViewport.addEventListener("scroll", applyStageSize);
+  }
+  window.visualViewport?.addEventListener?.("resize", applyStageSize);
 
   const root = new THREE.Group();
   
@@ -2886,8 +2904,12 @@ function updateTime(){
     // Passage volontaire : le gamer clique "Niveau suivant"
     if (nextBtn && !nextBtn.__bound){
       nextBtn.__bound = true;
+      let _nextLevelLock = false;
       const advance = (e)=>{
         try{ if (e){ e.preventDefault?.(); e.stopPropagation?.(); } }catch(_){}
+        if (_nextLevelLock) return;
+        _nextLevelLock = true;
+        setTimeout(()=>{ _nextLevelLock = false; }, 600);
         stopVictoryAnim();
         if (mixing) return;
         try{ grantModeRewardIfEligible(getLevelNumber1Based()); }catch(e){}
@@ -2909,9 +2931,11 @@ function updateTime(){
           try{ showToast?.("Erreur passage niveau"); }catch(_){}
         }
       };
-      nextBtn.addEventListener("click", advance);
-      nextBtn.addEventListener("touchend", advance, {passive:false});
-      nextBtn.addEventListener("pointerup", advance);
+      if (window.PointerEvent) {
+        nextBtn.addEventListener("pointerup", advance);
+      } else {
+        nextBtn.addEventListener("click", advance);
+      }
     }
 
   }
