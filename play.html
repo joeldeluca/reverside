@@ -1257,7 +1257,7 @@ body.sideOpen #winBadge{
 <div class="hint">Glisser pour tourner • Molette / pincement pour zoomer • Double-tap pour recentrer</div>
 
 <!-- Bouton ⋮ et panneau de droite -->
-<div id="fabMain"><button id="menuBtnMain" class="fab" aria-label="Options" onclick="toggleSidePanel()">⋮</button></div>
+<div id="fabMain"><button id="menuBtnMain" class="fab" aria-label="Options" onclick="window.toggleSidePanel && window.toggleSidePanel();">⋮</button></div>
 
 <div id="sidePanel">
   <!-- Groupe Mélange / Reset -->
@@ -1427,6 +1427,53 @@ function showToast(msg){
 window.currentLevelIndex = (typeof window.currentLevelIndex === 'number') ? window.currentLevelIndex : 0;
 var currentLevelIndex = window.currentLevelIndex; // 0-based
 // ----------------------------------------------
+
+// --- Side panel globals (robust across load/order issues) ---
+function setSidePanelOpen(open){
+  const panel = document.getElementById('sidePanel');
+  if(!panel) return;
+  panel.classList.toggle('show', !!open);
+  document.body.classList.toggle('sideOpen', panel.classList.contains('show'));
+}
+function toggleSidePanel(){
+  const panel = document.getElementById('sidePanel');
+  if(!panel) return;
+  setSidePanelOpen(!panel.classList.contains('show'));
+}
+window.setSidePanelOpen = window.setSidePanelOpen || setSidePanelOpen;
+window.toggleSidePanel = window.toggleSidePanel || toggleSidePanel;
+
+// --- Side panel globals (robust across load/order issues) ---
+function setSidePanelOpen(open){
+  const panel = document.getElementById('sidePanel');
+  if(!panel) return;
+  panel.classList.toggle('show', !!open);
+  document.body.classList.toggle('sideOpen', panel.classList.contains('show'));
+}
+function toggleSidePanel(){
+  const panel = document.getElementById('sidePanel');
+  if(!panel) return;
+  setSidePanelOpen(!panel.classList.contains('show'));
+}
+window.setSidePanelOpen = window.setSidePanelOpen || setSidePanelOpen;
+window.toggleSidePanel = window.toggleSidePanel || toggleSidePanel;
+
+// --- Side panel globals (robust across load/order issues) ---
+function setSidePanelOpen(open){
+  const panel = document.getElementById("sidePanel");
+  if(!panel) return;
+  panel.classList.toggle("show", !!open);
+  document.body.classList.toggle("sideOpen", panel.classList.contains("show"));
+}
+function toggleSidePanel(){
+  const panel = document.getElementById("sidePanel");
+  if(!panel) return;
+  setSidePanelOpen(!panel.classList.contains("show"));
+}
+window.setSidePanelOpen = window.setSidePanelOpen || setSidePanelOpen;
+window.toggleSidePanel = window.toggleSidePanel || toggleSidePanel;
+// ----------------------------------------------------------
+
 
 // --- Safe storage wrapper (prevents iOS/Safari SecurityError in private mode) ---
 const LS = {
@@ -1653,8 +1700,8 @@ function toggleSidePanel(){
 }
 
 // Expose for inline handlers (iOS Safari is strict about scope in some cases)
-window.setSidePanelOpen = setSidePanelOpen;
-window.toggleSidePanel = toggleSidePanel;
+window.setSidePanelOpen = window.setSidePanelOpen || setSidePanelOpen;
+window.toggleSidePanel = window.toggleSidePanel || toggleSidePanel;
 
   // iOS Safari: sécurise les clics (fallback touch -> click)
   const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
