@@ -182,22 +182,23 @@
 
   /* Pavé de commandes – à gauche, centré verticalement */
   #bottomBar{
-      left:8px;
-      right:8px;
-      top:auto;
-      bottom:calc(8px + env(safe-area-inset-bottom, 0px));
-      transform:none;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-    #bottomBar .row{
-      display:flex;
-      flex-direction: row;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-    }
+    position:fixed;
+    top:50%;
+    left:8px;
+    transform:translateY(-50%);
+    z-index:30;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    pointer-events:auto;
+  }
+  #bottomBar .row{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:6px;
+    pointer-events:auto;
+  }
   .pill{
     background:#020617;
     border-radius:999px;
@@ -3378,40 +3379,37 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
     };
   }
 
-  // Bind a single "tap" action without double-firing on desktop (click + pointer).
-  // Desktop: click only. Touch devices: touchend only (and prevent the synthetic click).
-  const __isTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
-  const bindTap = (el, fn)=>{
-    if (!el) return;
-    if (__isTouch) {
-      // iOS/Safari can fire both touch and click OR occasionally miss touchend.
-      // We execute on touchend (preferred) and allow click as a fallback.
-      // If a click arrives shortly after a touch, we ignore it to avoid double-actions.
-      let lastTouchTs = 0;
-      el.addEventListener('touchend', (ev)=>{
-        lastTouchTs = Date.now();
-        try { ev.preventDefault(); ev.stopPropagation(); } catch(e) {}
-        fn(ev);
-      }, {passive:false});
-      el.addEventListener('click', (ev)=>{
-        const now = Date.now();
-        if (lastTouchTs && (now - lastTouchTs) < 700) {
-          try { ev.preventDefault(); ev.stopPropagation(); } catch(e) {}
-          return;
-        }
-        fn(ev);
-      }, {passive:false});
-    } else {
-      el.addEventListener('click', fn);
-    }
+  // Bind a single, reliable "tap" handler (mouse, touch, pointer)
+const bindTap = (el, fn) => {
+  if (!el) return;
+
+  let lastFire = 0;
+  const nowMs = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
+  const fire = (e) => {
+    const t = nowMs();
+    if (t - lastFire < 450) return; // suppress double events
+    lastFire = t;
+    try { fn(e); } catch (err) { console.error(err); }
   };
 
-  const colUpBtn   = byId("colUp");
-  const colDownBtn = byId("colDown");
-  if (colUpBtn)   bindTap(colUpBtn,   () => colUp());
-  if (colDownBtn) bindTap(colDownBtn, () => colDown());
+  const stop = (e) => {
+    if (!e) return;
+    // Prevent "ghost clicks" and also stop the orbit controls from swallowing taps.
+    try { e.preventDefault(); } catch (_) {}
+    try { e.stopPropagation(); } catch (_) {}
+  };
 
-  const mixBtn   = byId("mixBtn");
+  if (window.PointerEvent) {
+    el.addEventListener('pointerup', (e) => { stop(e); fire(e); }, { passive: false });
+    el.addEventListener('click', (e) => { stop(e); fire(e); }, { passive: false });
+  } else {
+    el.addEventListener('touchend', (e) => { stop(e); fire(e); }, { passive: false });
+    el.addEventListener('click', (e) => { stop(e); fire(e); }, { passive: false });
+  }
+};
+
+const mixBtn   = byId("mixBtn");
   const resetBtn = byId("resetBtn");
   if (mixBtn)   bindTap(mixBtn, ()=> {
     hasMixedSinceReset = true;  // Mélange autorise une future victoire
