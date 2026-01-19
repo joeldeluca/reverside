@@ -242,15 +242,7 @@
     position:fixed;
     right:16px;
     bottom:24px;
-    z-index:200000;
-  }
-
-  /* v168: keep FAB away from Col buttons on iPhone */
-  @media (max-width: 520px){
-    #fabMain{ bottom:auto; top: calc(80px + env(safe-area-inset-top)); right: 12px; }
-    #sidePanel{ z-index: 100000; }
-    #leftPanel{ z-index: 1100; }
-    #bottomBar{ z-index: 1100; }
+    z-index:950;
   }
   #fabMain > button{
     width:40px;
@@ -281,7 +273,7 @@
 
     display:none;
     overflow:auto;
-    z-index:1200;
+    z-index:900;
   }
   #sidePanel.show{
     display:block;
@@ -684,6 +676,15 @@ canvas.webgl { width: 100vw; height: 100svh; }
     #fab{right:14px; bottom:90px;}
     #panel{right:10px; left:10px; width:auto; max-width:none; top:auto; bottom:120px; transform:none;}
   }
+  /* iPhone portrait layout: keep controls reachable */
+  @media (max-width: 520px){
+    #fabMain{ bottom: calc(110px + env(safe-area-inset-bottom)); right: 14px; }
+    #bottomBar{ left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); }
+    /* Ensure bottom controls sit above the floating menu button */
+    #bottomBar{ z-index: 1200; }
+    #fabMain{ z-index: 1100; }
+  }
+
   @media (max-height: 700px){
     #panel{bottom:110px; max-height:60vh; overflow:auto;}
     #rotPanel{top:130px;}
@@ -845,10 +846,14 @@ canvas.webgl { width: 100vw; height: 100svh; }
   #winBadge{ pointer-events:none; }
   #winBadge.show{ pointer-events:auto; }
   #nextLevelBtn{ pointer-events:auto; }
+  /* Solved-state: do NOT disable UI (was causing iPhone/iPad dead buttons). */
+  /* Solved-state: keep UI active (important for iPhone). */
+  /* Solved-state: keep UI active (important for iPhone). */
   body.solved #bottomBar,
-  body.solved #sidePanel{
-    pointer-events:none;
-    opacity:0.65;
+  body.solved #sidePanel,
+  body.solved #fabMain{
+    pointer-events: auto;
+    opacity: 1;
   }
   body.solved #winBadge{ opacity:1; }
 
@@ -917,172 +922,20 @@ canvas.webgl { width: 100vw; height: 100svh; }
 #landscapeBlock .t2{ font-size: 14px; opacity: .9; line-height: 1.35; }
 
 
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
+/* v167-iphonefix: iPhone portrait usability (avoid overlap with Col buttons) */
+@media (max-width: 520px){
+  #fabMain{ bottom: calc(120px + env(safe-area-inset-bottom)); right: 12px; }
+  #bottomBar{ left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); }
+  #rotWheel{ left: 10px; top: calc(130px + env(safe-area-inset-top)); transform: scale(0.92); transform-origin: left top; }
 }
 
- (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
- (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
- (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
- (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
- (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
- (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
- (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
- (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
-@media (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
+  /* iPhone portrait: avoid FAB covering Column buttons + respect safe areas */
+  @media (max-width: 520px){
+    #bottomBar{ left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); }
+    #fabMain{ bottom: calc(130px + env(safe-area-inset-bottom)); right: 12px; }
+    #sidePanel{ right: 10px; width: min(92vw, 420px); }
+  }
 </style>
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
-@media (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
-
-/* When side panel is open on mobile, make sure nothing sits above it */
-body.sideOpen #langSwitcher,
-body.sideOpen #topBar,
-body.sideOpen #topBar2,
-body.sideOpen #topBar3,
-body.sideOpen #winBadge{
-  pointer-events:none !important;
-}
-
-@media (max-width: 480px){
-  /* Keep space for the floating menu button on the right */
-  #bottomBar{ right: 76px; }
-  #fabMain{ right: 10px; bottom: 110px; }
-}
 </head>
 <body>
 
@@ -1257,7 +1110,7 @@ body.sideOpen #winBadge{
 <div class="hint">Glisser pour tourner • Molette / pincement pour zoomer • Double-tap pour recentrer</div>
 
 <!-- Bouton ⋮ et panneau de droite -->
-<div id="fabMain"><button id="menuBtnMain" class="fab" aria-label="Options" >⋮</button></div>
+<div id="fabMain"><button id="menuBtnMain">⋮</button></div>
 
 <div id="sidePanel">
   <!-- Groupe Mélange / Reset -->
@@ -1427,53 +1280,6 @@ function showToast(msg){
 window.currentLevelIndex = (typeof window.currentLevelIndex === 'number') ? window.currentLevelIndex : 0;
 var currentLevelIndex = window.currentLevelIndex; // 0-based
 // ----------------------------------------------
-
-// --- Side panel globals (robust across load/order issues) ---
-function setSidePanelOpen(open){
-  const panel = document.getElementById('sidePanel');
-  if(!panel) return;
-  panel.classList.toggle('show', !!open);
-  document.body.classList.toggle('sideOpen', panel.classList.contains('show'));
-}
-function toggleSidePanel(){
-  const panel = document.getElementById('sidePanel');
-  if(!panel) return;
-  setSidePanelOpen(!panel.classList.contains('show'));
-}
-window.setSidePanelOpen = window.setSidePanelOpen || setSidePanelOpen;
-window.toggleSidePanel = window.toggleSidePanel || toggleSidePanel;
-
-// --- Side panel globals (robust across load/order issues) ---
-function setSidePanelOpen(open){
-  const panel = document.getElementById('sidePanel');
-  if(!panel) return;
-  panel.classList.toggle('show', !!open);
-  document.body.classList.toggle('sideOpen', panel.classList.contains('show'));
-}
-function toggleSidePanel(){
-  const panel = document.getElementById('sidePanel');
-  if(!panel) return;
-  setSidePanelOpen(!panel.classList.contains('show'));
-}
-window.setSidePanelOpen = window.setSidePanelOpen || setSidePanelOpen;
-window.toggleSidePanel = window.toggleSidePanel || toggleSidePanel;
-
-// --- Side panel globals (robust across load/order issues) ---
-function setSidePanelOpen(open){
-  const panel = document.getElementById("sidePanel");
-  if(!panel) return;
-  panel.classList.toggle("show", !!open);
-  document.body.classList.toggle("sideOpen", panel.classList.contains("show"));
-}
-function toggleSidePanel(){
-  const panel = document.getElementById("sidePanel");
-  if(!panel) return;
-  setSidePanelOpen(!panel.classList.contains("show"));
-}
-window.setSidePanelOpen = window.setSidePanelOpen || setSidePanelOpen;
-window.toggleSidePanel = window.toggleSidePanel || toggleSidePanel;
-// ----------------------------------------------------------
-
 
 // --- Safe storage wrapper (prevents iOS/Safari SecurityError in private mode) ---
 const LS = {
@@ -1681,27 +1487,6 @@ function bootGame(){
   ensureSeedInit();
   updateSeedHUD();
 const byId = id => document.getElementById(id);
-
-// -------------------------
-// Side panel (Options)
-// -------------------------
-function setSidePanelOpen(open){
-  const panel = byId('sidePanel');
-  if(!panel) return;
-  const isOpen = !!open;
-  panel.classList.toggle('show', isOpen);
-  document.body.classList.toggle('sideOpen', isOpen);
-}
-
-function toggleSidePanel(){
-  const panel = byId('sidePanel');
-  if(!panel) return;
-  setSidePanelOpen(!panel.classList.contains('show'));
-}
-
-// Expose for inline handlers (iOS Safari is strict about scope in some cases)
-window.setSidePanelOpen = window.setSidePanelOpen || setSidePanelOpen;
-window.toggleSidePanel = window.toggleSidePanel || toggleSidePanel;
 
   // iOS Safari: sécurise les clics (fallback touch -> click)
   const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
@@ -2343,21 +2128,7 @@ function playScaleSolved(){
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
   const renderer = new THREE.WebGLRenderer({antialias:false,canvas:cv,alpha:true,powerPreference:"high-performance"});
 
-  
-  // v168: prevent canvas handlers from hijacking UI taps (iPhone Safari)
-  (function(){
-    const uiIds = ["sidePanel","bottomBar","leftPanel","fabMain","top"]; 
-    const evs = ["pointerdown","pointerup","touchstart","touchend","click"]; 
-    uiIds.forEach(id=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      evs.forEach(ev=>{
-        el.addEventListener(ev, (e)=>{ e.stopPropagation(); }, true);
-      });
-    });
-  })();
-
-// WebGL context loss handling (mobile Safari can drop context under memory pressure)
+  // WebGL context loss handling (mobile Safari can drop context under memory pressure)
   try{
     cv.addEventListener('webglcontextlost', (e)=>{ e.preventDefault(); console.warn('WebGL context lost'); }, false);
     cv.addEventListener('webglcontextrestored', ()=>{ console.warn('WebGL context restored'); try{ bootGame(); }catch(e){} }, false);
@@ -2379,7 +2150,7 @@ function playScaleSolved(){
       const lb = document.getElementById("landscapeBlock");
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const isLandscape = vw > vh;
-      const tight = isIOS && isLandscape && vw < 980;
+      const tight = isIOS && isLandscape && vh < 520;
       if (lb) {
         lb.style.display = tight ? "flex" : "none";
         lb.setAttribute("aria-hidden", tight ? "false" : "true");
@@ -2392,7 +2163,7 @@ function playScaleSolved(){
       const lb = document.getElementById("landscapeBlock");
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const isLandscape = vw > vh;
-      const tight = isIOS && isLandscape && vw < 980;
+      const tight = isIOS && isLandscape && vh < 520;
       if (lb) {
         lb.style.display = tight ? "flex" : "none";
         lb.setAttribute("aria-hidden", tight ? "false" : "true");
@@ -3593,29 +3364,37 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   // Mobile: toggle visibility of the Rotations block to free screen space
   const rotToggleBtn = byId("rotToggleBtn");
-  const rotBlockBtn  = byId("rotBlockBtn");
-  const toggleRot = ()=>{ document.body.classList.toggle('showRot'); };
-  if (rotToggleBtn) rotToggleBtn.onclick = toggleRot;
-  if (rotBlockBtn)  rotBlockBtn.onclick  = (e)=>{ e.preventDefault(); toggleRot(); };
+  if (rotToggleBtn){
+    rotToggleBtn.onclick = ()=>{
+      document.body.classList.toggle('showRot');
+    };
+  }
+
+  // iOS Safari can be finicky with 'click' on fixed overlays; bind touch/pointer too.
+  const bindTap = (el, fn)=>{
+    if (!el) return;
+    el.addEventListener('click', fn);
+    el.addEventListener('touchstart', (ev)=>{ try{ev.preventDefault();}catch(e){} fn(ev); }, {passive:false});
+    el.addEventListener('pointerdown', (ev)=>{ try{ev.preventDefault();}catch(e){} fn(ev); }, {passive:false});
+  };
 
   const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
-  if (colUpBtn)   colUpBtn.onclick   = () => colUp();
-  if (colDownBtn) colDownBtn.onclick = () => colDown();
+  if (colUpBtn)   bindTap(colUpBtn,   () => colUp());
+  if (colDownBtn) bindTap(colDownBtn, () => colDown());
 
   const mixBtn   = byId("mixBtn");
   const resetBtn = byId("resetBtn");
- if (mixBtn)   mixBtn.onclick   = ()=> {
+  if (mixBtn)   bindTap(mixBtn, ()=> {
     hasMixedSinceReset = true;  // Mélange autorise une future victoire
     const v = parseInt(byId("mixLevel").value,10) || 20;
     mixAnimated(v,140,{resetChrono:true});
-};
+  });
 
-  if (resetBtn) resetBtn.onclick = ()=> {
+  if (resetBtn) bindTap(resetBtn, ()=> {
     hasMixedSinceReset = false; // Reset bloque la victoire tant que pas de mélange
     loadLevel(currentLevelIndex,false);
-};
-
+});
   const runReplayBtn = byId("runReplayBtn");
   const runCloseBtn  = byId("runCloseBtn");
   const gameOverModal = byId("gameOverModal");
@@ -3749,12 +3528,14 @@ runOver = false;
   const menuBtnMain = byId("menuBtnMain");
   const sidePanel   = byId("sidePanel");
   if (menuBtnMain && sidePanel){
-    menuBtnMain.onclick = ()=>{
+    const togglePanel = (ev)=>{
+      try{ ev && ev.preventDefault && ev.preventDefault(); }catch(e){}
       sidePanel.classList.toggle("show");
-      document.body.classList.toggle("sideOpen", sidePanel.classList.contains("show"));
     };
+    menuBtnMain.onclick = togglePanel;
+    menuBtnMain.addEventListener('touchstart', togglePanel, {passive:false});
+    menuBtnMain.addEventListener('pointerdown', togglePanel, {passive:false});
   }
-
 const modeSel = byId("modeSel");
 if (modeSel){
   modeSel.value = currentMode;
@@ -5190,97 +4971,8 @@ try {
       const b = document.getElementById('helpBtn');
       if (b) b.click();
     }, 600);
-
-    // Remove the flag so a refresh on iPhone/iPad does not keep forcing the help screen.
-    q.delete('help');
-    const newQs = q.toString();
-    const clean = location.pathname + (newQs ? ('?' + newQs) : '') + location.hash;
-    if (typeof history !== 'undefined' && history.replaceState) {
-      history.replaceState(null, '', clean);
-    }
   }
 } catch(e) {}
-</script>
-
-<script>
-// v168: ui event shield (iPhone Safari)
-(function(){
-  function shield(el){
-    if(!el) return;
-    // Do not block 'click'/'touchend' because some UI buttons rely on event bubbling.
-    // We only prevent pointer/touch interactions from leaking to the 3D canvas handlers.
-    const evs=['pointerdown','pointermove','touchstart','touchmove'];
-    evs.forEach((evt)=>{
-      el.addEventListener(evt, function(e){
-        // Do not let canvas/orbit controls steal UI touches.
-        e.stopPropagation();
-      }, true);
-    });
-  }
-  function run(){
-    shield(document.getElementById('sidePanel'));
-    shield(document.getElementById('bottomBar'));
-    shield(document.getElementById('leftPanel'));
-    shield(document.getElementById('rotWheel'));
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run);
-  else run();
-})();
-</script>
-
-
-<!-- V172_SIDE_PANEL_BINDING -->
-<script>
-(() => {
-  const openCls = 'show';
-  function setOpen(open){
-    const panel = document.getElementById('sidePanel');
-    const ov    = document.getElementById('overlay');
-    if (!panel || !ov) return;
-    panel.classList.toggle(openCls, !!open);
-    ov.classList.toggle(openCls, !!open);
-    document.body.classList.toggle('sideOpen', !!open);
-  }
-  function toggle(){
-    const panel = document.getElementById('sidePanel');
-    if (!panel) return;
-    setOpen(!panel.classList.contains(openCls));
-  }
-  function bind(){
-    const btn = document.getElementById('menuBtnMain');
-    if (!btn) return;
-    // Ensure this binding is idempotent
-    if (btn.__reversideBound) return;
-    btn.__reversideBound = true;
-
-    const handler = (e) => {
-      try {
-        if (e) { e.preventDefault?.(); e.stopPropagation?.(); }
-        toggle();
-      } catch(_){}
-    };
-
-    btn.addEventListener('click', handler, true);
-    btn.addEventListener('touchend', handler, {passive:false, capture:true});
-
-    const ov = document.getElementById('overlay');
-    if (ov && !ov.__reversideBound){
-      ov.__reversideBound = true;
-      ov.addEventListener('click', () => setOpen(false), true);
-      ov.addEventListener('touchend', () => setOpen(false), {passive:false, capture:true});
-    }
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bind, {once:true});
-  } else {
-    bind();
-  }
-  // Also bind again after boot in case DOM was rewritten
-  window.addEventListener('load', bind, {once:false});
-  // Expose for any remaining inline handlers
-  window.setSidePanelOpen = window.setSidePanelOpen || setOpen;
-  window.toggleSidePanel  = window.toggleSidePanel  || toggle;
-})();
 </script>
 
 </body>
