@@ -1189,7 +1189,7 @@ function stopAllAudio(){
       window.__THREE_READY__ = true;
       if (typeof window.bootGame === "function" && !window.__BOOTED__){
         window.__BOOTED__ = true;
-        window.if(!window.__RS_BOOTED__){window.__RS_BOOTED__=true; if(!window.__RS_BOOTED__){ window.__RS_BOOTED__=true; bootGame(); }}
+        if(!window.__RS_BOOTED__){ window.__RS_BOOTED__=true; try{ bootGame(); }catch(e){ console.error(e); } }
       }
       return;
     }
