@@ -664,17 +664,6 @@ canvas.webgl { width: 100vw; height: 100svh; }
   .chip{ font-size:12px; padding:6px 10px; border-radius:14px; }
   #fabMain{ right:10px; bottom:calc(10px + env(safe-area-inset-bottom)); width:56px; height:56px; }
   #bottomBar{ left:8px; right:8px; bottom:calc(6px + env(safe-area-inset-bottom)); }
-    /* iPhone: keep Rot/Pivot/Colonne visible even on small widths */
-    #bottomBar{ flex-wrap:wrap; justify-content:center; row-gap:8px; }
-    #bottomBar .bottomRow{ flex-wrap:wrap; justify-content:center; gap:10px; }
-    #bottomBar .pill{ flex:0 0 auto; }
-    #bottomBar .pill.col{ width:auto; }
-    @media (max-width: 380px){
-      #bottomBar{ width:96vw; }
-      #bottomBar .bottomRow{ gap:8px; }
-      #bottomBar .pill{ min-width:100px; }
-    }
-
 }
 
 
@@ -822,25 +811,21 @@ canvas.webgl { width: 100vw; height: 100svh; }
       padding: 3px 8px;
     }
     #winBadge{ top: calc(env(safe-area-inset-top, 0px) + 98px); }
+
     /* Dock commands at bottom to avoid covering the cylinder */
     #bottomBar{
-      left:8px;
-      right:8px;
-      top:auto;
-      bottom:calc(env(safe-area-inset-bottom, 0px) + 12px);
-      transform:none;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      row-gap:8px;
-      flex-wrap:wrap;
+      left: 50%;
+      top: auto;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+      transform: translateX(-50%);
+      flex-direction: row;
+      align-items: flex-end;
+      gap: 10px;
     }
     #bottomBar .row{
-      display:flex;
-      flex-direction:row;
-      flex-wrap:wrap;
-      justify-content:center;
-      gap:10px;
+      flex-direction: row;
+      align-items: flex-end;
+      gap: 10px;
     }
 
     /* Slightly reduce button paddings on small screens */
@@ -1195,8 +1180,8 @@ canvas.webgl { width: 100vw; height: 100svh; }
     <label>Décalage verso :
       <input type="number" id="backOffset" value="0" min="0" max="17" step="1" style="width:52px">
     </label>
-    <input type="file" id="frontFile" accept="image/*" style="position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;opacity:0">
-    <input type="file" id="backFile" accept="image/*" style="position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;opacity:0">
+    <input type="file" id="frontFile" accept="image/*" style="display:none">
+    <input type="file" id="backFile" accept="image/*" style="display:none">
     <div class="mini">Images & réglages mémorisés (persistants sur cet appareil).</div>
   </div>
 <!-- Mini aperçu des images recto / verso -->
@@ -1234,10 +1219,6 @@ canvas.webgl { width: 100vw; height: 100svh; }
 </div>
 
 <script>
-// --- Platform detection (iOS/iPadOS Safari quirks) ---
-const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const _isIOS = __isIOS; // backward-compat alias
-const isIOS = __isIOS; // alias
 function stopAllAudio(){
   try{
     if (typeof audioCtx !== 'undefined' && audioCtx){
@@ -1508,6 +1489,19 @@ function bootGame(){
   ensureSeedInit();
   updateSeedHUD();
 const byId = id => document.getElementById(id);
+
+  // iOS Safari: sécurise les clics (fallback touch -> click)
+  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
+    window.__IOS_TOUCH_CLICK_PATCH__ = true;
+    document.addEventListener("touchend", function(ev){
+      const btn = ev && ev.target && ev.target.closest ? ev.target.closest("button") : null;
+      if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      try{ btn.click(); }catch(e){}
+    }, {passive:false, capture:true});
+  }
 
   let victorySoundOn = true; // toggle sons victoire
 
@@ -2047,36 +2041,44 @@ function playScaleSolved(){
 
 
   function restoreImages(){
-    // Robust loader (iOS can be flaky with cache/private mode)
-    const safeSet = (k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
-    const safeGet = (k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+    try{
+      // Images par défaut (si rien n'est mémorisé)
+      const defaultFront = "defaultFront.jpg";
+      const defaultBack = "defaultBack.jpg";
+      const hadFr = LS.get(LS_KEYS.FRONT);
+      const hadBk = LS.get(LS_KEYS.BACK);
+      if (!hadFr) LS.set(LS_KEYS.FRONT, defaultFront);
+      if (!hadBk) LS.set(LS_KEYS.BACK, defaultBack);
 
-    let frontSrc = safeGet('rs_front_src') || 'defaultFront.jpg';
-    let backSrc  = safeGet('rs_back_src')  || 'defaultBack.jpg';
-
-    function loadImg(url){
-      return new Promise((resolve,reject)=>{
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = ()=>resolve(img);
-        img.onerror = ()=>reject(new Error('load failed: '+url));
-        img.src = url;
-      });
-    }
-
-    const frontP = loadImg(frontSrc).catch(()=>{ frontSrc='defaultFront.jpg'; safeSet('rs_front_src', frontSrc); return loadImg(frontSrc); });
-    const backP  = loadImg(backSrc).catch(()=>{ backSrc='defaultBack.jpg'; safeSet('rs_back_src', backSrc); return loadImg(backSrc); });
-
-    Promise.all([frontP, backP]).then(([f,b])=>{
-      frontImg = f; backImg = b;
-      const frontPrev = document.getElementById('modelFrontPrev');
-      const backPrev  = document.getElementById('modelBackPrev');
-      if(frontPrev) frontPrev.style.backgroundImage = `url(${frontSrc})`;
-      if(backPrev)  backPrev.style.backgroundImage  = `url(${backSrc})`;
-      rebuildTextures();
-    }).catch(()=>{
-      // If everything fails, keep numbered materials
-    });
+      const fr = LS.get(LS_KEYS.FRONT);
+      const bk = LS.get(LS_KEYS.BACK);
+      if (fr){
+        const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.decoding = "async";
+      im.crossOrigin = "anonymous";
+      im.decoding = "async";
+        im.crossOrigin = "anonymous";
+        im.decoding = "async";
+        im.onload = async ()=>{ try{ if(im.decode) await im.decode(); }catch(e){} frontImg = im; rebuildTextures(); updateRectoPreview(im.src); };
+        im.src = fr;
+      }
+      if (bk){
+        const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.decoding = "async";
+      im.crossOrigin = "anonymous";
+      im.decoding = "async";
+        im.crossOrigin = "anonymous";
+        im.decoding = "async";
+        im.onload = async ()=>{ try{ if(im.decode) await im.decode(); }catch(e){} backImg = im; rebuildTextures(); updateVersoPreview(im.src); };
+        im.src = bk;
+      }
+      const same = LS.get(LS_KEYS.SAME);
+      if (same!==null) byId("sameFB").checked = (same==="1");
+      const bo = LS.get(LS_KEYS.BOFF);
+      if (bo!==null) byId("backOffset").value = bo;
+    }catch(e){}
   }
 
   const STEP_FOR = c => (Math.PI*2)/c;
@@ -3337,44 +3339,6 @@ function updateTime(){
     });
   }
 
-// ---- Images persistées (localStorage) : recharger au démarrage et après changement de niveau ----
-function loadImageFromDataURL(dataUrl){
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = (e) => reject(e);
-    img.src = dataUrl;
-  });
-}
-
-async function initPersistedImages(){
-  try{
-    const frontData = localStorage.getItem(LS_KEYS.FRONT);
-    const backData  = localStorage.getItem(LS_KEYS.BACK);
-
-    if (frontData){
-      const img = await loadImageFromDataURL(frontData);
-      frontImg = img;
-      updateRectoPreview(frontData);
-    }
-    if (backData){
-      const img = await loadImageFromDataURL(backData);
-      backImg = img;
-      updateVersoPreview(backData);
-    }
-
-    if (frontImg || backImg){
-      try{ updateMaterialsFromImages(); }catch(_){}
-      try{ rebuildAllTextures(); }catch(_){}
-    }
-  }catch(err){
-    console.warn("initPersistedImages:", err);
-  }
-}
-
-// Launch once DOM is ready (important on iOS)
-window.addEventListener("load", ()=>{ initPersistedImages(); }, { once:true });
-
 // ----- Boutons de jeu (rotations / pivot / colonne) -----
 const nbL = byId("nbLeft"), nbR = byId("nbRight"),
       n2L = byId("n2Left"), n2R = byId("n2Right"),
@@ -3398,66 +3362,50 @@ nhL.onclick = () => rotateLevelLogic(ROWS-1, 1);
 nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   const pivotBtn = byId("pivotBtn");
-  if (pivotBtn) pivotBtn.onclick = () => pivotOp();// Mobile: toggle visibility of the Rotations block + robust tap handling (iOS)
-const rotToggleBtn = byId("rotToggleBtn");
+  if (pivotBtn) pivotBtn.onclick = () => pivotOp();
 
-// Bind a single, reliable "tap" handler (mouse, touch, pointer)
-const bindTap = (el, fn) => {
-  if (!el) return;
+  // Mobile: toggle visibility of the Rotations block to free screen space
+  const rotToggleBtn = byId("rotToggleBtn");
+  if (rotToggleBtn){
+    rotToggleBtn.onclick = ()=>{
+      document.body.classList.toggle('showRot');
+    };
+  }
 
-  // Fire ONCE for a user action on desktop + iOS (avoid pointerup/touchend + click double fire)
-  let ignoreClicksUntil = 0;
-
-  const stop = (e) => {
-    try { e.preventDefault(); } catch(_) {}
-    try { e.stopPropagation(); } catch(_) {}
-    if (typeof e.stopImmediatePropagation === "function") {
-      try { e.stopImmediatePropagation(); } catch(_) {}
+  // Bind a single "tap" action without double-firing on desktop (click + pointer).
+  // Desktop: click only. Touch devices: touchend only (and prevent the synthetic click).
+  const __isTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+  const bindTap = (el, fn)=>{
+    if (!el) return;
+    if (__isTouch) {
+      // iOS/Safari can fire both touch and click OR occasionally miss touchend.
+      // We execute on touchend (preferred) and allow click as a fallback.
+      // If a click arrives shortly after a touch, we ignore it to avoid double-actions.
+      let lastTouchTs = 0;
+      el.addEventListener('touchend', (ev)=>{
+        lastTouchTs = Date.now();
+        try { ev.preventDefault(); ev.stopPropagation(); } catch(e) {}
+        fn(ev);
+      }, {passive:false});
+      el.addEventListener('click', (ev)=>{
+        const now = Date.now();
+        if (lastTouchTs && (now - lastTouchTs) < 700) {
+          try { ev.preventDefault(); ev.stopPropagation(); } catch(e) {}
+          return;
+        }
+        fn(ev);
+      }, {passive:false});
+    } else {
+      el.addEventListener('click', fn);
     }
   };
 
-  const fire = (e) => {
-    stop(e);
-    ignoreClicksUntil = Date.now() + 900;
-    try { fn(e); } catch(err) { console.error(err); }
-  };
+  const colUpBtn   = byId("colUp");
+  const colDownBtn = byId("colDown");
+  if (colUpBtn)   bindTap(colUpBtn,   () => colUp());
+  if (colDownBtn) bindTap(colDownBtn, () => colDown());
 
-  if (window.PointerEvent) {
-    el.addEventListener("pointerup", (e) => {
-      if (e && e.pointerType === "touch" && e.isPrimary === false) return;
-      fire(e);
-    }, { passive:false });
-
-    el.addEventListener("click", (e) => {
-      if (Date.now() < ignoreClicksUntil) { stop(e); return; }
-      fire(e);
-    }, { passive:false });
-
-    return;
-  }
-
-  if ("ontouchstart" in window) {
-    el.addEventListener("touchend", (e) => {
-      if (e.touches && e.touches.length) return; // pinch/zoom
-      fire(e);
-    }, { passive:false });
-
-    el.addEventListener("click", (e) => {
-      if (Date.now() < ignoreClicksUntil) { stop(e); return; }
-      fire(e);
-    }, { passive:false });
-
-    return;
-  }
-
-  el.addEventListener("click", (e) => fire(e), { passive:false });
-};
-
-if (rotToggleBtn){
-  bindTap(rotToggleBtn, ()=>{ document.body.classList.toggle('showRot'); });
-}
-
-const mixBtn   = byId("mixBtn");
+  const mixBtn   = byId("mixBtn");
   const resetBtn = byId("resetBtn");
   if (mixBtn)   bindTap(mixBtn, ()=> {
     hasMixedSinceReset = true;  // Mélange autorise une future victoire
@@ -3469,13 +3417,6 @@ const mixBtn   = byId("mixBtn");
     hasMixedSinceReset = false; // Reset bloque la victoire tant que pas de mélange
     loadLevel(currentLevelIndex,false);
 });
-
-	  // Column shift buttons (Col ↑ / Col ↓)
-	  // Ensure they are wired on all platforms.
-	  const colUpBtn = byId("colUp");
-	  const colDownBtn = byId("colDown");
-	  if (colUpBtn) bindTap(colUpBtn, ()=>{ colUp(); });
-	  if (colDownBtn) bindTap(colDownBtn, ()=>{ colDown(); });
   const runReplayBtn = byId("runReplayBtn");
   const runCloseBtn  = byId("runCloseBtn");
   const gameOverModal = byId("gameOverModal");
@@ -3662,19 +3603,14 @@ if (modeSel){
 
   window.addEventListener("wheel",e=>{
     if (celebrating || runOver) return;
-    // Prevent the browser from scrolling/zooming the page, which makes
-    // the canvas appear to "move" on touch/trackpad devices.
-    e.preventDefault();
     VIEW.zoom += (e.deltaY>0?1:-1)*0.35;
     VIEW.zoom=Math.max(VIEW.minZ,Math.min(VIEW.maxZ,VIEW.zoom));
     camera.position.z=VIEW.zoom;
-  },{passive:false});
+  },{passive:true});
 
   let touchDragging=false,tLastX=0,tLastY=0,pinchPrev=null;
   cv.addEventListener("touchstart",e=>{
     if (celebrating || runOver) return;
-    // Prevent Safari/Chrome from interpreting canvas gestures as page scroll/zoom.
-    e.preventDefault();
     if(e.touches.length===1){
       touchDragging=true; pinchPrev=null;
       tLastX=e.touches[0].clientX; tLastY=e.touches[0].clientY;
@@ -3684,11 +3620,9 @@ if (modeSel){
       const dy=e.touches[0].clientY-e.touches[1].clientY;
       pinchPrev=Math.hypot(dx,dy);
     }
-  },{passive:false});
+  },{passive:true});
   cv.addEventListener("touchmove",e=>{
     if (celebrating || runOver) return;
-    // Keep gesture interaction confined to the canvas.
-    e.preventDefault();
     if(e.touches.length===1 && touchDragging){
       const x=e.touches[0].clientX, y=e.touches[0].clientY;
       const dx=x-tLastX, dy=y-tLastY;
@@ -3709,7 +3643,7 @@ if (modeSel){
       VIEW.zoom=Math.max(VIEW.minZ,Math.min(VIEW.maxZ,VIEW.zoom));
       camera.position.z=VIEW.zoom;
     }
-  },{passive:false});
+  },{passive:true});
   cv.addEventListener("touchend",()=>{touchDragging=false; pinchPrev=null;},{passive:true});
 
   function animate(){
