@@ -1505,19 +1505,6 @@ function bootGame(){
   updateSeedHUD();
 const byId = id => document.getElementById(id);
 
-  // iOS Safari: sécurise les clics (fallback touch -> click)
-  const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-  if (__isIOS && !window.__IOS_TOUCH_CLICK_PATCH__){
-    window.__IOS_TOUCH_CLICK_PATCH__ = true;
-    document.addEventListener("touchend", function(ev){
-      const btn = ev && ev.target && ev.target.closest ? ev.target.closest("button") : null;
-      if (!btn) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      try{ btn.click(); }catch(e){}
-    }, {passive:false, capture:true});
-  }
-
   let victorySoundOn = true; // toggle sons victoire
 
   // --- option : sons de victoire ---
