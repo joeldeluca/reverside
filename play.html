@@ -1195,8 +1195,8 @@ canvas.webgl { width: 100vw; height: 100svh; }
     <label>Décalage verso :
       <input type="number" id="backOffset" value="0" min="0" max="17" step="1" style="width:52px">
     </label>
-    <input type="file" id="frontFile" accept="image/*" style="display:none">
-    <input type="file" id="backFile" accept="image/*" style="display:none">
+    <input type="file" id="frontFile" accept="image/*" style="position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;opacity:0">
+    <input type="file" id="backFile" accept="image/*" style="position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;opacity:0">
     <div class="mini">Images & réglages mémorisés (persistants sur cet appareil).</div>
   </div>
 <!-- Mini aperçu des images recto / verso -->
@@ -3346,6 +3346,44 @@ function updateTime(){
     });
   }
 
+// ---- Images persistées (localStorage) : recharger au démarrage et après changement de niveau ----
+function loadImageFromDataURL(dataUrl){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(e);
+    img.src = dataUrl;
+  });
+}
+
+async function initPersistedImages(){
+  try{
+    const frontData = localStorage.getItem(LS_KEYS.FRONT);
+    const backData  = localStorage.getItem(LS_KEYS.BACK);
+
+    if (frontData){
+      const img = await loadImageFromDataURL(frontData);
+      frontImg = img;
+      updateRectoPreview(frontData);
+    }
+    if (backData){
+      const img = await loadImageFromDataURL(backData);
+      backImg = img;
+      updateVersoPreview(backData);
+    }
+
+    if (frontImg || backImg){
+      try{ updateMaterialsFromImages(); }catch(_){}
+      try{ rebuildAllTextures(); }catch(_){}
+    }
+  }catch(err){
+    console.warn("initPersistedImages:", err);
+  }
+}
+
+// Launch once DOM is ready (important on iOS)
+window.addEventListener("load", ()=>{ initPersistedImages(); }, { once:true });
+
 // ----- Boutons de jeu (rotations / pivot / colonne) -----
 const nbL = byId("nbLeft"), nbR = byId("nbRight"),
       n2L = byId("n2Left"), n2R = byId("n2Right"),
@@ -3369,45 +3407,64 @@ nhL.onclick = () => rotateLevelLogic(ROWS-1, 1);
 nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   const pivotBtn = byId("pivotBtn");
-  if (pivotBtn) pivotBtn.onclick = () => pivotOp();
+  if (pivotBtn) pivotBtn.onclick = () => pivotOp();// Mobile: toggle visibility of the Rotations block + robust tap handling (iOS)
+const rotToggleBtn = byId("rotToggleBtn");
 
-  // Mobile: toggle visibility of the Rotations block to free screen space
-  const rotToggleBtn = byId("rotToggleBtn");
-  if (rotToggleBtn){
-    rotToggleBtn.onclick = ()=>{
-      document.body.classList.toggle('showRot');
-    };
-  }
-
-  // Bind a single, reliable "tap" handler (mouse, touch, pointer)
+// Bind a single, reliable "tap" handler (mouse, touch, pointer)
 const bindTap = (el, fn) => {
   if (!el) return;
 
-  let lastFire = 0;
-  const nowMs = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-
-  const fire = (e) => {
-    const t = nowMs();
-    if (t - lastFire < 450) return; // suppress double events
-    lastFire = t;
-    try { fn(e); } catch (err) { console.error(err); }
-  };
+  // Fire ONCE for a user action on desktop + iOS (avoid pointerup/touchend + click double fire)
+  let ignoreClicksUntil = 0;
 
   const stop = (e) => {
-    if (!e) return;
-    // Prevent "ghost clicks" and also stop the orbit controls from swallowing taps.
-    try { e.preventDefault(); } catch (_) {}
-    try { e.stopPropagation(); } catch (_) {}
+    try { e.preventDefault(); } catch(_) {}
+    try { e.stopPropagation(); } catch(_) {}
+    if (typeof e.stopImmediatePropagation === "function") {
+      try { e.stopImmediatePropagation(); } catch(_) {}
+    }
+  };
+
+  const fire = (e) => {
+    stop(e);
+    ignoreClicksUntil = Date.now() + 900;
+    try { fn(e); } catch(err) { console.error(err); }
   };
 
   if (window.PointerEvent) {
-    el.addEventListener('pointerup', (e) => { stop(e); fire(e); }, { passive: false });
-    el.addEventListener('click', (e) => { stop(e); fire(e); }, { passive: false });
-  } else {
-    el.addEventListener('touchend', (e) => { stop(e); fire(e); }, { passive: false });
-    el.addEventListener('click', (e) => { stop(e); fire(e); }, { passive: false });
+    el.addEventListener("pointerup", (e) => {
+      if (e && e.pointerType === "touch" && e.isPrimary === false) return;
+      fire(e);
+    }, { passive:false });
+
+    el.addEventListener("click", (e) => {
+      if (Date.now() < ignoreClicksUntil) { stop(e); return; }
+      fire(e);
+    }, { passive:false });
+
+    return;
   }
+
+  if ("ontouchstart" in window) {
+    el.addEventListener("touchend", (e) => {
+      if (e.touches && e.touches.length) return; // pinch/zoom
+      fire(e);
+    }, { passive:false });
+
+    el.addEventListener("click", (e) => {
+      if (Date.now() < ignoreClicksUntil) { stop(e); return; }
+      fire(e);
+    }, { passive:false });
+
+    return;
+  }
+
+  el.addEventListener("click", (e) => fire(e), { passive:false });
 };
+
+if (rotToggleBtn){
+  bindTap(rotToggleBtn, ()=>{ document.body.classList.toggle('showRot'); });
+}
 
 const mixBtn   = byId("mixBtn");
   const resetBtn = byId("resetBtn");
