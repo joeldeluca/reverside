@@ -1234,6 +1234,10 @@ canvas.webgl { width: 100vw; height: 100svh; }
 </div>
 
 <script>
+// --- Platform detection (iOS/iPadOS Safari quirks) ---
+const __isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const _isIOS = __isIOS; // backward-compat alias
+const isIOS = __isIOS; // alias
 function stopAllAudio(){
   try{
     if (typeof audioCtx !== 'undefined' && audioCtx){
