@@ -3421,6 +3421,13 @@ const mixBtn   = byId("mixBtn");
     hasMixedSinceReset = false; // Reset bloque la victoire tant que pas de mélange
     loadLevel(currentLevelIndex,false);
 });
+
+	  // Column shift buttons (Col ↑ / Col ↓)
+	  // Ensure they are wired on all platforms.
+	  const colUpBtn = byId("colUp");
+	  const colDownBtn = byId("colDown");
+	  if (colUpBtn) bindTap(colUpBtn, ()=>{ colUp(); });
+	  if (colDownBtn) bindTap(colDownBtn, ()=>{ colDown(); });
   const runReplayBtn = byId("runReplayBtn");
   const runCloseBtn  = byId("runCloseBtn");
   const gameOverModal = byId("gameOverModal");
@@ -3607,14 +3614,19 @@ if (modeSel){
 
   window.addEventListener("wheel",e=>{
     if (celebrating || runOver) return;
+    // Prevent the browser from scrolling/zooming the page, which makes
+    // the canvas appear to "move" on touch/trackpad devices.
+    e.preventDefault();
     VIEW.zoom += (e.deltaY>0?1:-1)*0.35;
     VIEW.zoom=Math.max(VIEW.minZ,Math.min(VIEW.maxZ,VIEW.zoom));
     camera.position.z=VIEW.zoom;
-  },{passive:true});
+  },{passive:false});
 
   let touchDragging=false,tLastX=0,tLastY=0,pinchPrev=null;
   cv.addEventListener("touchstart",e=>{
     if (celebrating || runOver) return;
+    // Prevent Safari/Chrome from interpreting canvas gestures as page scroll/zoom.
+    e.preventDefault();
     if(e.touches.length===1){
       touchDragging=true; pinchPrev=null;
       tLastX=e.touches[0].clientX; tLastY=e.touches[0].clientY;
@@ -3624,9 +3636,11 @@ if (modeSel){
       const dy=e.touches[0].clientY-e.touches[1].clientY;
       pinchPrev=Math.hypot(dx,dy);
     }
-  },{passive:true});
+  },{passive:false});
   cv.addEventListener("touchmove",e=>{
     if (celebrating || runOver) return;
+    // Keep gesture interaction confined to the canvas.
+    e.preventDefault();
     if(e.touches.length===1 && touchDragging){
       const x=e.touches[0].clientX, y=e.touches[0].clientY;
       const dx=x-tLastX, dy=y-tLastY;
@@ -3647,7 +3661,7 @@ if (modeSel){
       VIEW.zoom=Math.max(VIEW.minZ,Math.min(VIEW.maxZ,VIEW.zoom));
       camera.position.z=VIEW.zoom;
     }
-  },{passive:true});
+  },{passive:false});
   cv.addEventListener("touchend",()=>{touchDragging=false; pinchPrev=null;},{passive:true});
 
   function animate(){
