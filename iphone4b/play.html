@@ -3417,7 +3417,6 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
   };
 
 
-  const colUpBtn
   // iOS Safari fallback: some taps inside scrollable panels may fail to fire pointer/click reliably.
   // hardBind forces the callback to be reachable via onclick + touchstart (without preventing default).
   const hardBind = (el, fn)=>{
@@ -3429,7 +3428,8 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
       try{ fn(ev); }catch(e){}
     }, {passive:true});
   };
-   = byId("colUp");
+
+  const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
   if (colUpBtn)   bindTap(colUpBtn,   () => colUp());
   if (colDownBtn) bindTap(colDownBtn, () => colDown());
