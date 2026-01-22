@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <!-- REVERSIDE_BUILD v161: landing+play split, help param, robust default images -->
+  <!-- REVERSIDE_BUILD v167-iphone-hotfix3: landing+play split, help param, robust default images -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
 <title>REVERside 3D — Progression H fixe</title>
@@ -938,22 +938,17 @@ canvas.webgl { width: 100vw; height: 100svh; }
     #sidePanel{ right: 10px; width: min(92vw, 420px); }
   }
 
-  #dbgBanner{
-    position:fixed; left:8px; right:8px; bottom:8px;
-    z-index:99999;
-    padding:10px 12px;
-    background:rgba(180,40,40,.95);
-    color:#fff;
-    border-radius:10px;
-    font: 13px/1.3 -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif;
-    box-shadow:0 6px 18px rgba(0,0,0,.35);
-    white-space:pre-wrap;
+  /* iPhone hardening: keep essential controls visible and tappable */
+  @media (max-width: 520px){
+    #bottomBar{ display:flex !important; left:10px !important; right:10px !important; top:auto !important;
+      bottom: calc(10px + env(safe-area-inset-bottom)) !important; transform:none !important; z-index:1200 !important; }
+    #rotToggleBtn{ display:inline-flex !important; }
+    #bottomBar button{ touch-action: manipulation; }
   }
+
 </style>
 </head>
 <body>
-<div id="dbgBanner" style="display:none"></div>
-
 
 <div id="landscapeBlock" aria-hidden="true">
   <div class="box">
@@ -1109,16 +1104,16 @@ canvas.webgl { width: 100vw; height: 100svh; }
   <div class="row">
     <div class="pill">
       <span>Rot</span>
-      <button class="btn btn-small btn-primary" id="rotToggleBtn" title="Afficher / masquer Rotations" type="button">☰</button>
+      <button class="btn btn-small btn-primary" id="rotToggleBtn" title="Afficher / masquer Rotations">☰</button>
     </div>
     <div class="pill">
       <span>Pivot</span>
-      <button class="btn btn-small btn-primary" id="pivotBtn" type="button">P</button>
+      <button class="btn btn-small btn-primary" id="pivotBtn">P</button>
     </div>
     <div class="pill">
       <span>Colonne</span>
-      <button class="btn btn-small btn-primary" id="colUp" type="button">Col ↑</button>
-      <button class="btn btn-small btn-primary" id="colDown" type="button">Col ↓</button>
+      <button class="btn btn-small btn-primary" id="colUp">Col ↑</button>
+      <button class="btn btn-small btn-primary" id="colDown">Col ↓</button>
     </div>
   </div>
 </div>
@@ -1146,11 +1141,11 @@ canvas.webgl { width: 100vw; height: 100svh; }
         <option value="30">Difficile (30)</option>
       </select>
     </label>
-    <button class="btn btn-primary" id="mixBtn" type="button">Mélange</button> <button id="btnSeed" class="btnSmall" title="Défi (seed)" type="button">Défi</button>
-    <button class="btn btn-ghost" id="resetBtn" type="button">Reset</button>
-    <button id="playSongBtn" type="button">Lecture 🎵</button>
-    <button class="btn btn-ghost" id="recordsBtn" type="button">Records</button>
-<button class="btn" id="helpBtn" type="button">Aide</button>
+    <button class="btn btn-primary" id="mixBtn">Mélange</button> <button id="btnSeed" class="btnSmall" title="Défi (seed)">Défi</button>
+    <button class="btn btn-ghost" id="resetBtn">Reset</button>
+    <button id="playSongBtn">Lecture 🎵</button>
+    <button class="btn btn-ghost" id="recordsBtn">Records</button>
+<button class="btn" id="helpBtn">Aide</button>
     <label class="chk" style="margin-left:10px; font-size:12px; color:#cfd8ff;">
       <input type="checkbox" id="victorySound" checked> Sons victoire
     </label>
@@ -1219,7 +1214,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
 
   <!-- Groupe reset images -->
   <div class="grp">
-    <button class="btn btn-ghost" id="resetImagesBtn" type="button">Revenir aux barrettes numérotées</button>
+    <button class="btn btn-ghost" id="resetImagesBtn">Revenir aux barrettes numérotées</button>
     <div class="mini">Efface les images recto/verso mémorisées et recharge le jeu.</div>
   </div>
 </div>
@@ -1502,26 +1497,6 @@ function bootGame(){
   // Seed init (défi)
   ensureSeedInit();
   updateSeedHUD();
-
-/* === iPhone debug / robustness layer (hotfix2) === */
-(function(){
-  const banner = document.getElementById('dbgBanner');
-  function show(msg){
-    if(!banner) return;
-    banner.style.display='block';
-    banner.textContent = msg;
-  }
-  window.__DBG__ = { show };
-  window.addEventListener('error', (ev)=>{
-    const msg = (ev && ev.message) ? ev.message : 'Erreur JS';
-    show('Erreur: ' + msg);
-  });
-  window.addEventListener('unhandledrejection', (ev)=>{
-    let msg = 'Promise rejetée';
-    try{ msg = (ev && ev.reason && (ev.reason.message||String(ev.reason))) || msg; }catch(e){}
-    show('Erreur: ' + msg);
-  });
-})();
 const byId = id => document.getElementById(id);
 
   // iOS Safari: sécurise les clics (fallback touch -> click)
@@ -2075,6 +2050,20 @@ function playScaleSolved(){
 
 
   function restoreImages(){
+    const resolveSrc = (src)=>{
+      try { return new URL(src, window.location.href).toString(); } catch(e) { return src; }
+    };
+    const loadImg = (src, onok)=>{
+      const im = new Image();
+      // Only set crossOrigin for remote URLs; on same-origin it is unnecessary and can be fragile on iOS.
+      const s = String(src||'');
+      if (/^https?:\/\//i.test(s)) im.crossOrigin = "anonymous";
+      im.decoding = "async";
+      im.onload = async ()=>{ try{ if(im.decode) await im.decode(); }catch(e){} onok(im); };
+      im.onerror = ()=>{ /* silent */ };
+      im.src = resolveSrc(src);
+    };
+
     try{
       // Images par défaut (si rien n'est mémorisé)
       const defaultFront = "defaultFront.jpg";
@@ -2087,26 +2076,10 @@ function playScaleSolved(){
       const fr = LS.get(LS_KEYS.FRONT);
       const bk = LS.get(LS_KEYS.BACK);
       if (fr){
-        const im = new Image();
-      im.crossOrigin = "anonymous";
-      im.decoding = "async";
-      im.crossOrigin = "anonymous";
-      im.decoding = "async";
-        im.crossOrigin = "anonymous";
-        im.decoding = "async";
-        im.onload = async ()=>{ try{ if(im.decode) await im.decode(); }catch(e){} frontImg = im; rebuildTextures(); updateRectoPreview(im.src); };
-        im.src = fr;
+        loadImg(fr, (im)=>{ frontImg = im; rebuildTextures(); updateRectoPreview(im.src); });
       }
       if (bk){
-        const im = new Image();
-      im.crossOrigin = "anonymous";
-      im.decoding = "async";
-      im.crossOrigin = "anonymous";
-      im.decoding = "async";
-        im.crossOrigin = "anonymous";
-        im.decoding = "async";
-        im.onload = async ()=>{ try{ if(im.decode) await im.decode(); }catch(e){} backImg = im; rebuildTextures(); updateVersoPreview(im.src); };
-        im.src = bk;
+        loadImg(bk, (im)=>{ backImg = im; rebuildTextures(); updateVersoPreview(im.src); });
       }
       const same = LS.get(LS_KEYS.SAME);
       if (same!==null) byId("sameFB").checked = (same==="1");
@@ -3408,26 +3381,37 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   // Bind a single "tap" action without double-firing on desktop (click + pointer).
   // Desktop: click only. Touch devices: touchend only (and prevent the synthetic click).
-  const __isTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
-  // iOS Safari (notably iPhone 6s / iOS 15) is sometimes unreliable with preventDefault on touchend.
-  // Strategy: use click as the primary event everywhere; on touch devices, also listen to touchend as a fast-path,
-  // but never block the synthetic click. Guard against double-fire with a timestamp.
+    // Tap binding hardened for iOS Safari (iPhone 6s / iOS 15):
+  // Prefer Pointer Events when available (reliable on iOS 15+), and keep click as fallback.
   const bindTap = (el, fn)=>{
     if (!el) return;
-    let lastFireTs = 0;
-    const fire = (ev)=>{
+    // Hint to the browser that taps should not be interpreted as double-tap zoom/scroll.
+    try { el.style.touchAction = 'manipulation'; } catch(e) {}
+
+    let lastTs = 0;
+    const runOnce = (ev)=>{
       const now = Date.now();
-      if (now - lastFireTs < 350) return;
-      lastFireTs = now;
-      try{ fn(ev); }catch(e){ if(window.__DBG__&&window.__DBG__.show) window.__DBG__.show('Erreur action: '+(e.message||e)); }
+      if (now - lastTs < 250) return; // anti double-fire
+      lastTs = now;
+      try { ev.preventDefault(); } catch(e) {}
+      try { ev.stopPropagation(); } catch(e) {}
+      fn(ev);
     };
-    if (__isTouch){
-      el.addEventListener('touchend', fire, {passive:true});
-      el.addEventListener('click', fire, {passive:true});
+
+    if (window.PointerEvent) {
+      el.addEventListener('pointerup', runOnce, {passive:false});
+      // Some iOS builds still emit click; keep it as fallback.
+      el.addEventListener('click', (ev)=>{
+        const now = Date.now();
+        if (now - lastTs < 700) return;
+        runOnce(ev);
+      }, {passive:false});
     } else {
-      el.addEventListener('click', fire, {passive:true});
+      // Legacy: click only
+      el.addEventListener('click', runOnce, {passive:false});
     }
   };
+
 
   const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
