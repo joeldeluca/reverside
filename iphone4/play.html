@@ -2088,6 +2088,10 @@ function playScaleSolved(){
     }catch(e){}
   }
 
+  // iOS: ensure textures are applied after the 3D scene and materials are fully initialized.
+  // (On some devices the initial rebuildTextures() may happen before materials exist.)
+  setTimeout(()=>{ try{ if (frontImg || backImg) rebuildTextures(); }catch(e){} }, 600);
+
   const STEP_FOR = c => (Math.PI*2)/c;
   const HEIGHT_BASE = 3.0;
   const THICK = 0.06;
@@ -3413,23 +3417,38 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
   };
 
 
-  const colUpBtn   = byId("colUp");
+  const colUpBtn
+  // iOS Safari fallback: some taps inside scrollable panels may fail to fire pointer/click reliably.
+  // hardBind forces the callback to be reachable via onclick + touchstart (without preventing default).
+  const hardBind = (el, fn)=>{
+    if (!el) return;
+    try { el.style.touchAction = 'manipulation'; } catch(e) {}
+    el.onclick = (ev)=>{ try{ fn(ev); }catch(e){} };
+    el.addEventListener('touchstart', (ev)=>{
+      // Do not preventDefault here; allow the browser to synthesize click if needed.
+      try{ fn(ev); }catch(e){}
+    }, {passive:true});
+  };
+   = byId("colUp");
   const colDownBtn = byId("colDown");
   if (colUpBtn)   bindTap(colUpBtn,   () => colUp());
   if (colDownBtn) bindTap(colDownBtn, () => colDown());
 
   const mixBtn   = byId("mixBtn");
   const resetBtn = byId("resetBtn");
-  if (mixBtn)   bindTap(mixBtn, ()=> {
+  const doMix = ()=> {
     hasMixedSinceReset = true;  // Mélange autorise une future victoire
     const v = parseInt(byId("mixLevel").value,10) || 20;
     mixAnimated(v,140,{resetChrono:true});
-  });
-
-  if (resetBtn) bindTap(resetBtn, ()=> {
+  };
+  const doReset = ()=> {
     hasMixedSinceReset = false; // Reset bloque la victoire tant que pas de mélange
     loadLevel(currentLevelIndex,false);
-});
+  };
+
+  if (mixBtn)   { bindTap(mixBtn, doMix); hardBind(mixBtn, doMix); }
+  if (resetBtn) { bindTap(resetBtn, doReset); hardBind(resetBtn, doReset); }
+
   const runReplayBtn = byId("runReplayBtn");
   const runCloseBtn  = byId("runCloseBtn");
   const gameOverModal = byId("gameOverModal");
