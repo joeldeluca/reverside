@@ -103,9 +103,10 @@
     transform:translateX(-50%) scale(.96);
     transition:opacity .2s ease,transform .2s ease;
     z-index: 99999;
-    pointer-events:auto;
+    pointer-events:none;
   }
   #winBadge.show{
+    pointer-events:auto;
     opacity:1;
     transform:translateX(-50%) scale(1.02);
   }
@@ -3771,11 +3772,21 @@ if (modeSel){
 
     makePlaceholders();
     buildBars();
-    // If photos are already loaded in memory, rebuild & apply immediately for this new grid size.
-    try{ if (frontImg || backImg) rebuildTexturesAndApply(); }catch(e){}
-    // Re-charge images persist00e9es 00e0 chaque niveau (corrige perte de textures apr00e8s changement de niveau)
-    try{ restoreImages(); }catch(e){}
+
+    // Applique d'abord les textures "numérotées" (placeholder)…
     applyTextures();
+
+    // …puis restaure / recharge les images persistées…
+    try{ restoreImages(); }catch(e){}
+
+    // …et enfin ré-applique les photos sur les faces (corrige iOS : perte après changement de niveau).
+    try{
+      if (frontImg || backImg){
+        rebuildTexturesAndApply();
+        setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 250);
+        setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 800);
+      }
+    }catch(e){}
     layoutAll();
     snapshotInitial();
 
