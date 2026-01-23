@@ -2021,7 +2021,9 @@ function playScaleSolved(){
     FRONT:`${STORAGE_NS}_front_dataurl`,
     BACK:`${STORAGE_NS}_back_dataurl`,
     SAME:`${STORAGE_NS}_same_fb`,
-    BOFF:`${STORAGE_NS}_back_offset`
+    BOFF:`${STORAGE_NS}_back_offset`,
+    MIXLVL:`${STORAGE_NS}_mix_level`,
+    MODE:`${STORAGE_NS}_mode`
   };
 
   let frontImg = null, backImg = null;
@@ -2075,22 +2077,35 @@ function playScaleSolved(){
 
       const fr = LS.get(LS_KEYS.FRONT);
       const bk = LS.get(LS_KEYS.BACK);
-      if (fr){
-        loadImg(fr, (im)=>{ frontImg = im; rebuildTextures(); updateRectoPreview(im.src); });
+      const frResolved = fr ? resolveSrc(fr) : null;
+      const bkResolved = bk ? resolveSrc(bk) : null;
+      const sameFr = (frontImg && frResolved && frontImg.src === frResolved);
+      const sameBk = (backImg  && bkResolved && backImg.src  === bkResolved);
+      if (fr && !sameFr){
+        loadImg(frResolved, (im)=>{ frontImg = im; rebuildTexturesAndApply(); updateRectoPreview(im.src); });
+      } else if (sameFr){
+        try{ updateRectoPreview(frontImg.src); }catch(e){}
       }
-      if (bk){
-        loadImg(bk, (im)=>{ backImg = im; rebuildTextures(); updateVersoPreview(im.src); });
+      if (bk && !sameBk){
+        loadImg(bkResolved, (im)=>{ backImg = im; rebuildTexturesAndApply(); updateVersoPreview(im.src); });
+      } else if (sameBk){
+        try{ updateVersoPreview(backImg.src); }catch(e){}
       }
       const same = LS.get(LS_KEYS.SAME);
       if (same!==null) byId("sameFB").checked = (same==="1");
       const bo = LS.get(LS_KEYS.BOFF);
       if (bo!==null) byId("backOffset").value = bo;
+      const ml = LS.get(LS_KEYS.MIXLVL);
+      if (ml!==null && byId("mixLevel")) byId("mixLevel").value = ml;
+      const md = LS.get(LS_KEYS.MODE);
+      if (md!==null && byId("modeSel")) byId("modeSel").value = md;
+
     }catch(e){}
   }
 
   // iOS: ensure textures are applied after the 3D scene and materials are fully initialized.
   // (On some devices the initial rebuildTextures() may happen before materials exist.)
-  setTimeout(()=>{ try{ if (frontImg || backImg) rebuildTextures(); }catch(e){} }, 600);
+  setTimeout(()=>{ try{ if (frontImg || backImg) rebuildTexturesAndApply(); }catch(e){} }, 600);
 
   const STEP_FOR = c => (Math.PI*2)/c;
   const HEIGHT_BASE = 3.0;
@@ -3247,6 +3262,14 @@ function updateTime(){
     }
   }
 
+  // Helper: rebuild textures (for current ROWS/COLS) and immediately apply them to materials.
+  // Needed on iOS when changing levels: placeholders are recreated, so we must reapply photo textures synchronously.
+  function rebuildTexturesAndApply(){
+    try{ rebuildTextures(); }catch(e){}
+    try{ applyTextures(); }catch(e){}
+  }
+
+
   // Bouton « Revenir aux barrettes numérotées »
   const resetImagesBtn = byId("resetImagesBtn");
   if (resetImagesBtn){
@@ -3436,14 +3459,32 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
 
   const mixBtn   = byId("mixBtn");
   const resetBtn = byId("resetBtn");
+
+  // Persist UI settings (mix difficulty + mode) so they survive reloads and level changes.
+  const mixLevelSel = byId("mixLevel");
+  if (mixLevelSel) mixLevelSel.addEventListener("change", ()=>{ try{ LS.set(LS_KEYS.MIXLVL, mixLevelSel.value); }catch(e){} });
+  const modeSelEl = byId("modeSel");
+  if (modeSelEl) modeSelEl.addEventListener("change", ()=>{ try{ LS.set(LS_KEYS.MODE, modeSelEl.value); currentMode = modeSelEl.value; }catch(e){} });
   const doMix = ()=> {
     hasMixedSinceReset = true;  // Mélange autorise une future victoire
     const v = parseInt(byId("mixLevel").value,10) || 20;
     mixAnimated(v,140,{resetChrono:true});
   };
   const doReset = ()=> {
+    // Full reset must cancel any pending victory/advance logic.
     hasMixedSinceReset = false; // Reset bloque la victoire tant que pas de mélange
+    celebrating = false;
+    mixing = false;
+    armed = false;
+    timerStoppedMs = null;
+    moves = 0;
+    try{ if (byId("moves")) byId("moves").textContent = "0"; }catch(e){}
+
     loadLevel(currentLevelIndex,false);
+
+    // Defensive: after reloading a (solved) level, keep victory disarmed until player acts.
+    hasMixedSinceReset = false;
+    armed = false;
   };
 
   if (mixBtn)   { bindTap(mixBtn, doMix); hardBind(mixBtn, doMix); }
@@ -3706,6 +3747,8 @@ if (modeSel){
 
     makePlaceholders();
     buildBars();
+    // If photos are already loaded in memory, rebuild & apply immediately for this new grid size.
+    try{ if (frontImg || backImg) rebuildTexturesAndApply(); }catch(e){}
     // Re-charge images persist00e9es 00e0 chaque niveau (corrige perte de textures apr00e8s changement de niveau)
     try{ restoreImages(); }catch(e){}
     applyTextures();
