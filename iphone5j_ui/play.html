@@ -62,11 +62,11 @@
     pointer-events:none;
   }
   #top{transition:transform 180ms ease; will-change:transform;}
-  body.topCollapsed #top{ transform: translateY(calc(-100% - 12px)); }
+  body.topCollapsed #top{ transform: translateY(calc(-100% + 18px)); }
   #topHandle{
     position:fixed;
     left:50%;
-    top:0;
+    top: calc(var(--topH, 56px) - 2px);
     transform:translateX(-50%);
     z-index:22;
     background:var(--chip);
@@ -77,10 +77,10 @@
     font-weight:900;
     font-size:13px;
     pointer-events:auto;
-    display:none;
+    display:block;
     touch-action:manipulation;
   }
-  body.topCollapsed #topHandle{ display:block; }
+  body.topCollapsed #topHandle{ display:block; top:0; }
   .iconBtn{
     background:transparent;
     border:0;
@@ -983,6 +983,12 @@ canvas.webgl { width: 100vw; height: 100svh; }
 
 /* zfix: fab above overlays (iPhone) */
 #fabMain{ z-index: 20001 !important; }
+/* ===== TOP BAR RETRACTABLE (iPhone-safe) ===== */
+
+#top {
+  transition: transform 180ms ease;
+  will-change: transform;
+}
 
 </style>
 </head>
@@ -1070,7 +1076,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
   <div class="chip">Vies: <span id="livesStr">❤❤❤</span></div>
   <div class="chip">🏆 <span id="bestVal">--:--</span></div>
 </div>
-<div id="topHandle" role="button" tabindex="0" aria-label="Afficher / masquer les infos">Infos</div>
+<div id="topHandle" aria-label="Afficher/Masquer infos" role="button" tabindex="0">Infos</div>
 <div id="levelBadge">Niveau 1/6 — 2 niveaux × 12 barrettes</div>
 <div id="winBadge">✅ Résolu ! <button id="nextLevelBtn" class="pillBtn">Niveau suivant</button></div>
 <div id="lifeBonusBadge">🎁 +1 vie !</div>
@@ -5376,17 +5382,13 @@ try {
     try{ localStorage.setItem('topCollapsed', v ? '1' : '0'); }catch(e){}
   }
 
-  btn.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(true); }, {passive:true});
-  handle.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(false); }, {passive:true});
-
-  // Accessibilité clavier (PC) : Enter/Espace sur la languette
-  handle.addEventListener('keydown', (e)=>{
-    const k = e.key || e.code;
-    if (k === 'Enter' || k === ' ' || k === 'Spacebar'){
-      e.preventDefault();
-      setCollapsed(false);
-    }
-  });
+  function toggle(){
+    const v = !document.body.classList.contains('topCollapsed');
+    setCollapsed(v);
+  }
+  btn.addEventListener('click', (e)=>{ e.stopPropagation(); toggle(); }, {passive:true});
+  handle.addEventListener('click', (e)=>{ e.stopPropagation(); toggle(); }, {passive:true});
+  handle.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggle(); } });
 
   let saved = null;
   try{ saved = localStorage.getItem('topCollapsed'); }catch(e){}
