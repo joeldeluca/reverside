@@ -87,7 +87,6 @@
     pointer-events:none;
   }
   #winBadge{
-    display:none;
     position:fixed;
     left:50%;
     top:60px;
@@ -107,9 +106,6 @@
     pointer-events:none;
   }
   #winBadge.show{
-    display:flex;
-    align-items:center;
-    gap:10px;
     pointer-events:auto;
     opacity:1;
     transform:translateX(-50%) scale(1.02);
@@ -3472,23 +3468,12 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
   const hardBind = (el, fn)=>{
     if (!el) return;
     try { el.style.touchAction = 'manipulation'; } catch(e) {}
-
-    const wrap = (ev)=>{
-      try{
-        if (ev){
-          // Prevent taps from "falling through" to underlying UI (e.g., winBadge / next level).
-          try{ ev.preventDefault(); }catch(_){}
-          try{ ev.stopPropagation(); }catch(_){}
-        }
-        fn(ev);
-      }catch(e){}
-    };
-
-    // Prefer click (very stable on iOS in https), keep touchstart as a fast path.
-    el.onclick = wrap;
-    el.addEventListener('touchstart', wrap, {passive:false});
+    el.onclick = (ev)=>{ try{ fn(ev); }catch(e){} };
+    el.addEventListener('touchstart', (ev)=>{
+      // Do not preventDefault here; allow the browser to synthesize click if needed.
+      try{ fn(ev); }catch(e){}
+    }, {passive:true});
   };
-};
 
   const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
@@ -3800,20 +3785,6 @@ if (modeSel){
         rebuildTexturesAndApply();
         setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 250);
         setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 800);
-        setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 1600);
-        setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 3200);
-
-        // iOS: also retry over a few animation frames (some devices apply material maps late)
-        try{
-          let __photoRafN = 0;
-          const __photoRaf = ()=>{
-            __photoRafN++;
-            try{ rebuildTexturesAndApply(); }catch(e){}
-            if (__photoRafN < 24) requestAnimationFrame(__photoRaf);
-          };
-          requestAnimationFrame(__photoRaf);
-        }catch(e){}
-
       }
     }catch(e){}
     layoutAll();
@@ -5152,6 +5123,142 @@ try {
     }, 600);
   }
 } catch(e) {}
+</script>
+
+
+<script>
+/* iPhone hotfix5f: stronger photo reapply across levels + stop click-through + mix steps robustness */
+(function(){
+  // 1) stop click/tap from panel falling through to canvas/badges
+  const panel = document.getElementById('sidePanel');
+  if(panel){
+    const stop = (e)=>{ try{ e.preventDefault(); }catch(_e){} try{ e.stopPropagation(); }catch(_e){} };
+    // capture phase to intercept early
+    ['click','pointerup','pointerdown','touchend','touchstart'].forEach(ev=>{
+      panel.addEventListener(ev, (e)=>{
+        const t = e.target;
+        // only stop for interactive elements inside the panel
+        if(t && (t.closest('button') || t.closest('select') || t.closest('input') || t.closest('a') || t.closest('label'))){
+          stop(e);
+        }
+      }, true);
+    });
+  }
+
+  // 2) winBadge must be truly inert when hidden
+  const wb = document.getElementById('winBadge');
+  if(wb){
+    wb.style.pointerEvents = 'none';
+    // enforce display:none unless .show
+    const mo = new MutationObserver(()=>{
+      const isShow = wb.classList.contains('show');
+      wb.style.display = isShow ? 'block' : 'none';
+      wb.style.pointerEvents = isShow ? 'auto' : 'none';
+    });
+    mo.observe(wb, {attributes:true, attributeFilter:['class']});
+    // initialize
+    wb.style.display = wb.classList.contains('show') ? 'block' : 'none';
+  }
+
+  // 3) stronger photo apply: multiple RAF + timeouts, and after every level load
+  function reapplyPhotosMulti(){
+    try{
+      if(typeof window.rebuildTexturesAndApply === 'function'){
+        window.rebuildTexturesAndApply();
+      } else if (typeof window.restoreImages === 'function'){
+        window.restoreImages();
+      }
+    }catch(e){}
+    // extra retries on iOS Safari material timing
+    let n = 0;
+    function raf(){
+      n++;
+      try{
+        if(typeof window.rebuildTexturesAndApply === 'function'){
+          window.rebuildTexturesAndApply();
+        } else if (typeof window.restoreImages === 'function'){
+          window.restoreImages();
+        }
+      }catch(e){}
+      if(n<12) requestAnimationFrame(raf);
+    }
+    if(typeof requestAnimationFrame === 'function') requestAnimationFrame(raf);
+    [120, 280, 520, 900, 1400].forEach(ms=>{
+      setTimeout(()=>{
+        try{
+          if(typeof window.rebuildTexturesAndApply === 'function'){
+            window.rebuildTexturesAndApply();
+          } else if (typeof window.restoreImages === 'function'){
+            window.restoreImages();
+          }
+        }catch(e){}
+      }, ms);
+    });
+  }
+
+  // Hook loadLevel if present
+  if(typeof window.loadLevel === 'function'){
+    const _loadLevel = window.loadLevel;
+    window.loadLevel = function(){
+      const r = _loadLevel.apply(this, arguments);
+      // after level rebuild, reapply photos
+      try{ reapplyPhotosMulti(); }catch(e){}
+      // also disarm win on load
+      try{
+        if(typeof window.armed !== 'undefined') window.armed = false;
+        if(typeof window.hasMixedSinceReset !== 'undefined') window.hasMixedSinceReset = false;
+      }catch(e){}
+      return r;
+    };
+  } else {
+    // if loadLevel not global yet, retry later
+    setTimeout(()=>{
+      if(typeof window.loadLevel === 'function'){
+        const _loadLevel = window.loadLevel;
+        window.loadLevel = function(){
+          const r = _loadLevel.apply(this, arguments);
+          try{ reapplyPhotosMulti(); }catch(e){}
+          try{
+            if(typeof window.armed !== 'undefined') window.armed = false;
+            if(typeof window.hasMixedSinceReset !== 'undefined') window.hasMixedSinceReset = false;
+          }catch(e){}
+          return r;
+        };
+      }
+    }, 0);
+  }
+
+  // 4) mix steps robustness: ensure at least 1, and read stored value if needed
+  function getMixSteps(){
+    let v = 0;
+    try{
+      const el = document.getElementById('mixLevel');
+      if(el) v = parseInt(el.value,10)||0;
+    }catch(e){}
+    if(!v){
+      try{ v = parseInt(localStorage.getItem('reverside_mix_steps')||'',10)||0; }catch(e){}
+    }
+    if(!v) v = 20;
+    return v;
+  }
+  // Patch mix button handler if it calls mixGame()
+  if(typeof window.mixGame === 'function'){
+    const _mixGame = window.mixGame;
+    window.mixGame = function(steps){
+      // prevent phantom win by clearing win state before mixing
+      try{
+        if(typeof window.celebrating !== 'undefined') window.celebrating = false;
+        const wb = document.getElementById('winBadge');
+        if(wb){ wb.classList.remove('show'); wb.style.display='none'; wb.style.pointerEvents='none'; }
+      }catch(e){}
+      const s = (steps==null || steps===0) ? getMixSteps() : steps;
+      try{ localStorage.setItem('reverside_mix_steps', String(s)); }catch(e){}
+      return _mixGame.call(this, s);
+    };
+  }
+  // Initial apply once scene is booted
+  setTimeout(reapplyPhotosMulti, 200);
+})();
 </script>
 
 </body>
