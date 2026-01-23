@@ -995,44 +995,6 @@ canvas.webgl { width: 100vw; height: 100svh; }
   transform: translateY(calc(-100% + 22px));
 }
 
-/* Languette */
-#topHandle {
-  position: absolute;
-  left: 50%;
-  bottom: -22px;
-  transform: translateX(-50%);
-  height: 22px;
-  min-width: 110px;
-  padding: 0 12px;
-
-  background: rgba(0,0,0,0.75);
-  color: #fff;
-  font-size: 13px;
-  line-height: 22px;
-  text-align: center;
-
-  border-radius: 0 0 10px 10px;
-  z-index: 9999;
-
-  cursor: pointer;
-  touch-action: manipulation;
-  user-select: none;
-}
-
-/* Optionnel : agrandir légèrement la zone tactile sur iPhone */
-@media (max-width: 480px) {
-  #topHandle {
-    height: 26px;
-    bottom: -26px;
-    line-height: 26px;
-    min-width: 120px;
-  }
-  #top.top-collapsed {
-    transform: translateY(calc(-100% + 26px));
-  }
-}
-
-
 /* --- iPhone UI fixes (Infos / Langue / Hint / Viewport) --- */
 @media (max-width: 600px){
   /* remonter légèrement la scène sur iPhone */
@@ -1147,6 +1109,16 @@ canvas.webgl { width: 100vw; height: 100svh; }
     font-size: 14px !important;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
+}
+
+
+/* v6: hide Infos handle when overlays/modals are open (avoid overlapping close buttons) */
+body.helpOpen #topHandle,
+body.modalOpen #topHandle{ display:none !important; }
+
+/* v6: on iPhone, keep Infos handle available (toggle), except when overlays open */
+@media (max-width: 700px){
+  #topHandle{ display:inline-flex !important; align-items:center; justify-content:center; }
 }
 
 </style>
@@ -5579,8 +5551,8 @@ try {
     try{ localStorage.setItem('topCollapsed', v ? '1' : '0'); }catch(e){}
   }
 
-  btn.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(true); }, {passive:true});
-  handle.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(false); }, {passive:true});
+  btn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setCollapsed(!document.body.classList.contains('topCollapsed')); }, {passive:false});
+  handle.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setCollapsed(!document.body.classList.contains('topCollapsed')); }, {passive:false});
 
   let saved = null;
   try{ saved = localStorage.getItem('topCollapsed'); }catch(e){}
@@ -5592,48 +5564,6 @@ try {
 
 </script>
 
-
-<script>
-/* ===== Infos toggle binding (v4) ===== */
-(function(){
-  function ready(fn){
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
-    else fn();
-  }
-  ready(function(){
-    var handle = document.getElementById('topHandle');
-    var top = document.getElementById('top');
-    if (!handle || !top) return;
-
-    // Ensure visible on iPhone even if older CSS tried to hide it
-    try{
-      if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches){
-        handle.style.display = 'inline-flex';
-      }
-    }catch(e){}
-
-    function setCollapsed(collapsed){
-      document.body.classList.toggle('topCollapsed', collapsed);
-    }
-
-    // Sync initial state
-    if (!document.body.classList.contains('topCollapsed')) setCollapsed(false);
-
-    function toggle(){
-      setCollapsed(!document.body.classList.contains('topCollapsed'));
-    }
-
-    // Click on handle toggles
-    handle.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); toggle(); }, {passive:false});
-
-    // Also bind any existing collapse button if present
-    var btn = document.getElementById('topCollapseBtn') || document.getElementById('topToggle') || document.querySelector('[data-top-toggle]');
-    if (btn){
-      btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); toggle(); }, {passive:false});
-    }
-  });
-})();
-</script>
 
 </body>
 </html>
