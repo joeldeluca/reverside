@@ -3226,7 +3226,11 @@ function updateTime(){
     // If grid or sources changed (level change / new images / offsets), reset cache.
     const sig = [ROWS,COLS,
       frontImg ? (frontImg.currentSrc || frontImg.src || '') : '',
+      frontImg ? (frontImg.naturalWidth||frontImg.width||0) : 0,
+      frontImg ? (frontImg.naturalHeight||frontImg.height||0) : 0,
       backImg  ? (backImg.currentSrc  || backImg.src  || '') : '',
+      backImg  ? (backImg.naturalWidth||backImg.width||0) : 0,
+      backImg  ? (backImg.naturalHeight||backImg.height||0) : 0,
       same?1:0, off|0].join('|');
     if (sig !== __tileTexCacheSig){
       __tileTexCacheSig = sig;
