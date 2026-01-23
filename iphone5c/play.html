@@ -866,7 +866,8 @@ canvas.webgl { width: 100vw; height: 100svh; }
 /* --- Mobile usability fixes (v163c) --- */
 #legalFooter{ user-select:none; }
 @media (max-width: 900px){ #legalFooter{ display:none; } }
-#winBadge{ z-index: 9999 !important; pointer-events:auto !important; }
+#winBadge{ z-index: 9999 !important; pointer-events:none !important; }
+  #winBadge.show{ pointer-events:auto !important; }
 #nextLevelBtn{ pointer-events:auto !important; }
 #rotPanel, #rotationsPanel, #rotWrap, #rotControls{ z-index: 2000; }
 
@@ -946,6 +947,9 @@ canvas.webgl { width: 100vw; height: 100svh; }
     #bottomBar button{ touch-action: manipulation; }
   }
 
+
+/* zfix: fab above overlays (iPhone) */
+#fabMain{ z-index: 20001 !important; }
 </style>
 </head>
 <body>
@@ -3283,7 +3287,8 @@ function updateTime(){
   // Needed on iOS when changing levels: placeholders are recreated, so we must reapply photo textures synchronously.
   function rebuildTexturesAndApply(){
     try{ rebuildTextures(); }catch(e){}
-    try{ applyTextures(); }catch(e){}
+    // IMPORTANT: do NOT call applyTextures() here.
+    // applyTextures() reassigns placeholder tiles (tilesF/tilesB) and would overwrite photo maps.
   }
 
 
