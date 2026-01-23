@@ -65,10 +65,10 @@
   body.topCollapsed #top{ transform: translateY(calc(-100% - 12px)); }
   #topHandle{
     position:fixed;
-    left:12px;
-    top:calc(env(safe-area-inset-top, 0px) + 54px); /* sous le bandeau haut quand il est ouvert */
-    transform:none;
-    z-index:999999;
+    left:50%;
+    top:0;
+    transform:translateX(-50%);
+    z-index:22;
     background:var(--chip);
     border:1px solid var(--bd);
     border-top:0;
@@ -77,25 +77,10 @@
     font-weight:900;
     font-size:13px;
     pointer-events:auto;
-    display:block;        /* toujours visible */
+    display:none;
     touch-action:manipulation;
-    user-select:none;
-    -webkit-user-select:none;
   }
-  body.topCollapsed #topHandle{
-    top:calc(env(safe-area-inset-top, 0px) + 6px); /* remonte quand le bandeau est replié */
-  }
-  /* Sur écrans plus larges, on peut recentrer */
-  @media (min-width: 601px){
-    #topHandle{
-      left:50%;
-      transform:translateX(-50%);
-      top:calc(env(safe-area-inset-top, 0px) + 54px);
-    }
-    body.topCollapsed #topHandle{
-      top:calc(env(safe-area-inset-top, 0px) + 6px);
-    }
-  }
+  body.topCollapsed #topHandle{ display:block; }
   .iconBtn{
     background:transparent;
     border:0;
@@ -277,25 +262,12 @@
     left:50%;
     bottom:54px;
     transform:translateX(-50%);
-    background:rgba(15,23,42,.65);
+    background:rgba(15,23,42,.8);
     border-radius:999px;
     border:1px solid #1e293b;
     padding:4px 10px;
     font-size:10px;
-    z-index:5;                 /* ne passe plus au-dessus des commandes */
-    pointer-events:none;       /* ne bloque jamais les boutons */
-    opacity:.55;
-  }
-  @media (max-width: 600px){
-    .hint{
-      left:12px;
-      right:76px;             /* laisse la place au bouton ⋮ */
-      bottom:12px;
-      transform:none;
-      max-width:calc(100% - 88px);
-      font-size:9px;
-      opacity:.35;            /* discret */
-    }
+    z-index:25;
   }
 
   /* Bouton "⋮" en bas à droite */
@@ -1061,48 +1033,46 @@ canvas.webgl { width: 100vw; height: 100svh; }
 }
 
 
-/* === iPhone: languette Infos (toujours visible) === */
-#topHandle{ display:none; } /* défaut: caché sur desktop/iPad */
-@media (max-width: 520px){
+/* --- iPhone UI fixes (Infos / Langue / Hint / Viewport) --- */
+@media (max-width: 600px){
+  /* remonter légèrement la scène sur iPhone */
+  canvas.webgl, #hOverlay2D{ transform: translateY(-6vh); }
+
+  /* languette Infos toujours visible + au-dessus de tout */
   #topHandle{
-    display:flex !important;
-    align-items:center;
-    justify-content:center;
-    position:fixed !important;
-    left:50% !important;
-    top:0 !important; /* recalé par JS quand la barre est ouverte */
-    transform:translateX(-50%) !important;
-    z-index:99999 !important;
-    height:28px !important;
-    min-width:110px !important;
-    padding:0 14px !important;
-    border-radius:0 0 14px 14px !important;
-    border:1px solid var(--bd) !important;
-    border-top:0 !important;
-    background:rgba(0,0,0,0.78) !important;
-    color:#fff !important;
-    font-weight:900 !important;
-    font-size:13px !important;
-    line-height:28px !important;
-    cursor:pointer !important;
-    user-select:none !important;
-    -webkit-user-select:none !important;
-    touch-action:manipulation !important;
-    pointer-events:auto !important;
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    left: 12px !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    z-index: 999999 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
+  }
+
+  /* la langue n'a pas besoin d'être persistante en jeu (visible seulement dans l'aide) */
+  #langBox{
+    z-index: 1200 !important;
+    display: none !important;
+  }
+  body.helpOpen #langBox{
+    display: flex !important;
+  }
+
+  /* la bulle d'astuce bas ne doit jamais gêner les contrôles */
+  .hint, #hint, #gestureHint{
+    pointer-events: none !important;
+    z-index: 10 !important;
+    opacity: 0 !important; /* cachée sur iPhone : intégrée dans l'aide */
   }
 }
 
-
-/* === UX: langue uniquement dans l'Aide (overlay) === */
-#langBox{ display:none !important; }
-
-/* Astuce gestes: sur mobile, on la met dans l'Aide pour éviter l'encombrement */
-@media (max-width: 600px){
-  .hint{ display:none !important; }
-}
-
-@media (max-width: 600px){
-  #topHandle{ left: 12px !important; right:auto !important; transform:none !important; }
+/* rendre les modales au-dessus du reste (y compris Safari UI) */
+#aboutModal, #feedbackModal, #onboardOverlay{
+  z-index: 2000000 !important;
 }
 
 </style>
@@ -1140,8 +1110,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
       <div class="onboardSlide" data-slide="0">
         <div class="onboardText">
           <div><b>But :</b> REVERside est un casse‑tête en 3 dimensions composé de barrettes disposées autour d’un cylindre. C'est un puzzle d’images apposées sur et dans un cylindre. Ses originalités premières sont les mouvements possibles pour les reconstituer. La faculté de charger ses propres images, photos ou autres permet de s'approprier le jeu. Le son est un élément important pour retrouver l'état résolu du puzzle. Enfin, après un 1er niveau relativement simple, on rentre peu à peu dans un des meilleurs casse‑têtes au monde, avec un nombre incroyable de probabilités !</div>
-          <div style="margin-top:10px"><b>Pour jouer :</b> cliquez sur le bouton rond en bas à droite pour ouvrir les commandes.
-          <div style="margin-top:10px"><b>Gestes :</b> Glisser pour tourner • Pincement / molette pour zoomer • Double‑tap pour recentrer.</div>e pour afficher le panneau de contrôle (Mélange, Reset, Lecture, etc.).</div>
+          <div style="margin-top:10px"><b>Pour jouer :</b> cliquez sur le bouton rond en bas à droite pour afficher le panneau de contrôle (Mélange, Reset, Lecture, etc.).</div>
         </div>
       </div>
 
@@ -1192,7 +1161,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
   <div class="chip">Vies: <span id="livesStr">❤❤❤</span></div>
   <div class="chip">🏆 <span id="bestVal">--:--</span></div>
 </div>
-<div id="topHandle" role="button" tabindex="0" aria-label="Afficher/Masquer infos">Infos</div>
+<div id="topHandle">Infos</div>
 <div id="levelBadge">Niveau 1/6 — 2 niveaux × 12 barrettes</div>
 <div id="winBadge">✅ Résolu ! <button id="nextLevelBtn" class="pillBtn">Niveau suivant</button></div>
 <div id="lifeBonusBadge">🎁 +1 vie !</div>
@@ -4596,13 +4565,18 @@ async function searchMoveX(K, maxDepth, options){
 
   function show(){
     overlay.style.display = 'flex';
-    try { const lb=document.getElementById('langBox'); if(lb) lb.style.display='flex'; } catch(e) {}
+    document.body.classList.add('helpOpen');
+    // show language switch only inside help on mobile
+    const lb = document.getElementById('langBox');
+    if (lb && window.matchMedia && window.matchMedia('(max-width: 600px)').matches) lb.style.display = 'flex';
     render();
   }
 
   function hide(){
     overlay.style.display = 'none';
-    try { const lb=document.getElementById('langBox'); if(lb) lb.style.display='none'; } catch(e) {}
+    document.body.classList.remove('helpOpen');
+    const lb = document.getElementById('langBox');
+    if (lb && window.matchMedia && window.matchMedia('(max-width: 600px)').matches) lb.style.display = 'none';
   }
 
   function markSeen(){
@@ -5249,6 +5223,37 @@ async function searchMoveX(K, maxDepth, options){
   const feedbackMail = document.getElementById("feedbackMail");
   const feedbackStatus = document.getElementById("feedbackStatus");
 
+  // --- Robust modal close on iPhone (backdrop + ESC) ---
+  function closeModal(modal){
+    if (!modal) return;
+    modal.style.display = 'none';
+  }
+  function openModal(modal){
+    if (!modal) return;
+    modal.style.display = 'flex';
+  }
+
+  // Ensure About/Feedback sit above everything
+  if (aboutModal) aboutModal.style.zIndex = '2000000';
+  if (feedbackModal) feedbackModal.style.zIndex = '2000000';
+
+  // Close on backdrop click
+  if (aboutModal){
+    aboutModal.addEventListener('click', (e)=>{ if (e.target === aboutModal) closeModal(aboutModal); });
+  }
+  if (feedbackModal){
+    feedbackModal.addEventListener('click', (e)=>{ if (e.target === feedbackModal) closeModal(feedbackModal); });
+  }
+  // Close on ESC
+  window.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape'){
+      if (aboutModal && aboutModal.style.display !== 'none') closeModal(aboutModal);
+      if (feedbackModal && feedbackModal.style.display !== 'none') closeModal(feedbackModal);
+    }
+  });
+
+
+
   function show(el){ if (el) el.style.display = "flex"; }
   function hide(el){ if (el) el.style.display = "none"; }
 
@@ -5488,67 +5493,29 @@ try {
   setTimeout(reapplyPhotosMulti, 200);
 })();
 
-// --- Top panel collapse (iPhone) --- 
+// --- Top panel collapse (mobile-friendly) ---
 (function(){
   const top = document.getElementById('top');
   const btn = document.getElementById('topCollapseBtn');
   const handle = document.getElementById('topHandle');
   if(!top || !btn || !handle) return;
 
-  const ua = navigator.userAgent || '';
-  const isPhone = /iPhone|iPod/.test(ua) || (Math.min(screen.width, screen.height) <= 520 && 'ontouchstart' in window);
-  if(!isPhone){
-    // Sur PC/iPad : pas de repli automatique, pas de languette.
-    handle.style.display = 'none';
-    return;
-  }
-
-  function isCollapsed(){ return document.body.classList.contains('topCollapsed'); }
-
-  function positionHandle(){
-    // Quand ouvert : placer la languette juste sous la barre du haut.
-    // Quand replié : la coller en haut de l'écran.
-    try{
-      const collapsed = isCollapsed();
-      if(collapsed){
-        handle.style.top = '0px';
-      }else{
-        const r = top.getBoundingClientRect();
-        const y = Math.max(0, Math.round(r.bottom));
-        handle.style.top = y + 'px';
-      }
-    }catch(e){}
-  }
-
   function setCollapsed(v){
     document.body.classList.toggle('topCollapsed', !!v);
     try{ localStorage.setItem('topCollapsed', v ? '1' : '0'); }catch(e){}
-    // Recalage après transition + recalage immédiat
-    positionHandle();
-    setTimeout(positionHandle, 220);
   }
 
-  function toggle(){
-    setCollapsed(!isCollapsed());
-  }
-
-  btn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); toggle(); }, {passive:false});
-  handle.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); toggle(); }, {passive:false});
-  handle.addEventListener('touchstart', (e)=>{ e.stopPropagation(); }, {passive:true});
-  handle.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggle(); } });
-
-  window.addEventListener('resize', ()=>{ positionHandle(); }, {passive:true});
-  window.addEventListener('orientationchange', ()=>{ setTimeout(positionHandle, 250); }, {passive:true});
+  btn.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(true); }, {passive:true});
+  handle.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(false); }, {passive:true});
 
   let saved = null;
   try{ saved = localStorage.getItem('topCollapsed'); }catch(e){}
+  const isPhone = /iPhone|iPod/.test(navigator.userAgent);
   if(saved === '1') setCollapsed(true);
   else if(saved === '0') setCollapsed(false);
-  else setCollapsed(true); // par défaut sur iPhone
-
-  // Recalage au tout début
-  setTimeout(positionHandle, 50);
+  else if(isPhone) setCollapsed(true); // default collapsed on iPhone to gain vertical space
 })();
+
 </script>
 
 </body>
