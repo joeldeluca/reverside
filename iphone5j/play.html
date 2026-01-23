@@ -1764,7 +1764,7 @@ const AUDIO_STUB = {
   let playSpeedFactor  = 1.0;  // contrôlé par le slider "Vitesse"
   let playVolumeFactor = 0.8;  // contrôlé par le slider "Volume"
   // Résolution des “tuiles” affichées sur le cylindre
-  const TILE_RES = __isIOS ? 512 : 1024;  // 512 on iOS to reduce GPU memory
+  const TILE_RES = __isIOS ? 128 : 512;  // lowered on iOS to avoid GPU OOM (iPhone 6s)
 
   function ensureAudio(){
     if (typeof AUDIO_DISABLED !== 'undefined' && AUDIO_DISABLED) return null;
@@ -2310,6 +2310,11 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
   function makeId(prefix,l,c){ return prefix+"-"+(l+1)+"-"+(c+1); }
 
     function makePlaceholders(){
+    // Dispose previous placeholder textures (prevents GPU accumulation across levels)
+    try{
+      for (const t of tilesF){ try{ t?.dispose?.(); }catch(e){} }
+      for (const t of tilesB){ try{ t?.dispose?.(); }catch(e){} }
+    }catch(e){}
     tilesF.length = 0;
     tilesB.length = 0;
     for (let r=0;r<ROWS;r++){
@@ -2405,8 +2410,32 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
     return g;
   }
 
+  function __disposeObject3D(obj){
+    if (!obj) return;
+    obj.traverse?.((n)=>{
+      try{
+        if (n.isMesh){
+          if (n.geometry){ try{ n.geometry.dispose(); }catch(e){} }
+          const mats = Array.isArray(n.material) ? n.material : [n.material];
+          for (const mat of mats){
+            if (!mat) continue;
+            try{
+              // dispose maps
+              for (const k of ["map","alphaMap","aoMap","bumpMap","displacementMap","emissiveMap","envMap","lightMap","metalnessMap","normalMap","roughnessMap"]){
+                const t = mat[k];
+                if (t && t.isTexture){ try{ t.dispose(); }catch(e){} }
+              }
+              mat.dispose?.();
+            }catch(e){}
+          }
+        }
+      }catch(e){}
+    });
+  }
+
   function buildBars(){
-    levelGroups.forEach(g=>root.remove(g));
+    // Dispose previous level groups to avoid GPU memory leaks (critical on iPhone 6s)
+    levelGroups.forEach(g=>{ try{ __disposeObject3D(g); }catch(e){} try{ root.remove(g); }catch(e){} });
     levelGroups = Array.from({length:ROWS},()=>new THREE.Group());
     levelGroups.forEach(g=>root.add(g));
     barsByLC = [];
