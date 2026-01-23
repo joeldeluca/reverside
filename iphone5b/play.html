@@ -2100,6 +2100,19 @@ function playScaleSolved(){
       const md = LS.get(LS_KEYS.MODE);
       if (md!==null && byId("modeSel")) byId("modeSel").value = md;
 
+      // iOS: if default images fail to appear (cache/race), retry once shortly after.
+      setTimeout(()=>{
+        try{
+          if (!frontImg){
+            loadImg(resolveSrc("defaultFront.jpg?cb="+Date.now()), (im)=>{ frontImg=im; rebuildTexturesAndApply(); updateRectoPreview(im.src); });
+          }
+          if (!backImg){
+            loadImg(resolveSrc("defaultBack.jpg?cb="+Date.now()), (im)=>{ backImg=im; rebuildTexturesAndApply(); updateVersoPreview(im.src); });
+          }
+        }catch(e){}
+      }, 900);
+
+
     }catch(e){}
   }
 
@@ -2539,6 +2552,7 @@ root.rotation.set(VIEW.rotX,VIEW.rotY,0);
   }
 
   let moves=0, gameStartMs=performance.now(), timerStoppedMs=null;
+  let playerHasActed=false; // becomes true after first user move (prevents auto-win after reset/level load)
   let celebrating=false, mixing=false, armed=false;
   let waitFirstMove=false; // chrono: pause après mélange, démarre au 1er coup
 
@@ -2952,6 +2966,7 @@ function updateTime(){
       timerStoppedMs = null;
       renderTimer();
     }
+    playerHasActed = true;
     moves++;
     byId("moves").textContent = moves;
   
@@ -3082,6 +3097,7 @@ function updateTime(){
 
     function checkSolved(){
     if (celebrating || mixing) return;
+    if (!playerHasActed) return; // prevents auto-advance after reset/level load
     const solved = isSolved();
     if (!solved){
       if (moves>0) armed = true;
@@ -3129,6 +3145,7 @@ function updateTime(){
     hasMixedSinceReset = true;  // autoMix or manual mix now authorizes victory
 
     moves=0; byId("moves").textContent="0";
+    playerHasActed=false;
     document.querySelectorAll("button").forEach(b=>b.disabled=false);
     mixing=false;
     timerStoppedMs=null;
@@ -3463,11 +3480,12 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
   // Persist UI settings (mix difficulty + mode) so they survive reloads and level changes.
   const mixLevelSel = byId("mixLevel");
   if (mixLevelSel) mixLevelSel.addEventListener("change", ()=>{ try{ LS.set(LS_KEYS.MIXLVL, mixLevelSel.value); }catch(e){} });
+  if (mixLevelSel) mixLevelSel.addEventListener("input",  ()=>{ try{ LS.set(LS_KEYS.MIXLVL, mixLevelSel.value); }catch(e){} });
   const modeSelEl = byId("modeSel");
   if (modeSelEl) modeSelEl.addEventListener("change", ()=>{ try{ LS.set(LS_KEYS.MODE, modeSelEl.value); currentMode = modeSelEl.value; }catch(e){} });
   const doMix = ()=> {
     hasMixedSinceReset = true;  // Mélange autorise une future victoire
-    const v = parseInt(byId("mixLevel").value,10) || 20;
+    const v = parseInt((LS.get(LS_KEYS.MIXLVL) || (byId("mixLevel")?byId("mixLevel").value:"")),10) || 20;
     mixAnimated(v,140,{resetChrono:true});
   };
   const doReset = ()=> {
@@ -3478,6 +3496,7 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
     armed = false;
     timerStoppedMs = null;
     moves = 0;
+    playerHasActed=false;
     try{ if (byId("moves")) byId("moves").textContent = "0"; }catch(e){}
 
     loadLevel(currentLevelIndex,false);
@@ -3756,6 +3775,7 @@ if (modeSel){
     snapshotInitial();
 
     moves=0; byId("moves").textContent="0";
+    playerHasActed=false;
     timerStoppedMs=null;
     gameStartMs=performance.now();
     lastFrameMs=null;
