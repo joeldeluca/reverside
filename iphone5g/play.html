@@ -5130,22 +5130,24 @@ try {
 /* iPhone hotfix5f: stronger photo reapply across levels + stop click-through + mix steps robustness */
 (function(){
   // 1) stop click/tap from panel falling through to canvas/badges
+  // IMPORTANT: do NOT block the control's own handlers.
+  // We only stop propagation *after* the control handled the event (bubble phase).
   const panel = document.getElementById('sidePanel');
   if(panel){
-    const stop = (e)=>{ try{ e.preventDefault(); }catch(_e){} try{ e.stopPropagation(); }catch(_e){} };
-    // capture phase to intercept early
-    ['click','pointerup','pointerdown','touchend','touchstart'].forEach(ev=>{
-      panel.addEventListener(ev, (e)=>{
-        const t = e.target;
-        // only stop for interactive elements inside the panel
-        if(t && (t.closest('button') || t.closest('select') || t.closest('input') || t.closest('a') || t.closest('label'))){
-          stop(e);
-        }
-      }, true);
+    const stopBubbling = (e)=>{
+      const t = e.target;
+      if(t && (t.closest('button') || t.closest('select') || t.closest('input') || t.closest('a') || t.closest('label'))){
+        try{ e.stopPropagation(); }catch(_e){}
+        // no preventDefault here
+      }
+    };
+    ['click','pointerup','touchend'].forEach(ev=>{
+      panel.addEventListener(ev, stopBubbling, false); // bubble phase
     });
   }
 
   // 2) winBadge must be truly inert when hidden
+
   const wb = document.getElementById('winBadge');
   if(wb){
     wb.style.pointerEvents = 'none';
