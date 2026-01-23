@@ -61,6 +61,38 @@
     z-index:20;
     pointer-events:none;
   }
+  #top{transition:transform 180ms ease; will-change:transform;}
+  body.topCollapsed #top{ transform: translateY(calc(-100% - 12px)); }
+  #topHandle{
+    position:fixed;
+    left:50%;
+    top:0;
+    transform:translateX(-50%);
+    z-index:22;
+    background:var(--chip);
+    border:1px solid var(--bd);
+    border-top:0;
+    border-radius:0 0 14px 14px;
+    padding:6px 14px;
+    font-weight:900;
+    font-size:13px;
+    pointer-events:auto;
+    display:none;
+    touch-action:manipulation;
+  }
+  body.topCollapsed #topHandle{ display:block; }
+  .iconBtn{
+    background:transparent;
+    border:0;
+    color:var(--ink);
+    font-weight:900;
+    font-size:16px;
+    line-height:1;
+    padding:0 6px;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+
   .chip{
     background:var(--chip);
     border:1px solid var(--bd);
@@ -1032,11 +1064,12 @@ canvas.webgl { width: 100vw; height: 100svh; }
 <div id="hOverlay2D"></div>
 
 <div id="top">
-  <div class="chip">REVERside 3D</div>
+  <div class="chip">REVERside 3D <button id="topCollapseBtn" class="iconBtn" title="Réduire">▴</button></div>
   <div class="chip">Mode: <span id="modeHud">—</span> • Étape: <span id="stepHud">—</span> • <span id="seedHud" style="opacity:.85; margin-left:10px;"></span><span id="modeLabel">Chrono</span> • Niv: <span id="lvlName">1/4</span> • Coups: <span id="moves">0</span> • ⏱ <span id="timer">00:00</span> • Bonus: <span id="bank">+0</span></div>
   <div class="chip">Vies: <span id="livesStr">❤❤❤</span></div>
   <div class="chip">🏆 <span id="bestVal">--:--</span></div>
 </div>
+<div id="topHandle">Infos</div>
 <div id="levelBadge">Niveau 1/6 — 2 niveaux × 12 barrettes</div>
 <div id="winBadge">✅ Résolu ! <button id="nextLevelBtn" class="pillBtn">Niveau suivant</button></div>
 <div id="lifeBonusBadge">🎁 +1 vie !</div>
@@ -5329,6 +5362,30 @@ try {
   // Initial apply once scene is booted
   setTimeout(reapplyPhotosMulti, 200);
 })();
+
+// --- Top panel collapse (mobile-friendly) ---
+(function(){
+  const top = document.getElementById('top');
+  const btn = document.getElementById('topCollapseBtn');
+  const handle = document.getElementById('topHandle');
+  if(!top || !btn || !handle) return;
+
+  function setCollapsed(v){
+    document.body.classList.toggle('topCollapsed', !!v);
+    try{ localStorage.setItem('topCollapsed', v ? '1' : '0'); }catch(e){}
+  }
+
+  btn.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(true); }, {passive:true});
+  handle.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(false); }, {passive:true});
+
+  let saved = null;
+  try{ saved = localStorage.getItem('topCollapsed'); }catch(e){}
+  const isPhone = /iPhone|iPod/.test(navigator.userAgent);
+  if(saved === '1') setCollapsed(true);
+  else if(saved === '0') setCollapsed(false);
+  else if(isPhone) setCollapsed(true); // default collapsed on iPhone to gain vertical space
+})();
+
 </script>
 
 </body>
