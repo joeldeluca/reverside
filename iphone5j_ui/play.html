@@ -62,11 +62,11 @@
     pointer-events:none;
   }
   #top{transition:transform 180ms ease; will-change:transform;}
-  body.topCollapsed #top{ transform: translateY(calc(-100% + 18px)); }
+  body.topCollapsed #top{ transform: translateY(calc(-100% - 12px)); }
   #topHandle{
     position:fixed;
     left:50%;
-    top: calc(var(--topH, 56px) - 2px);
+    top:0;
     transform:translateX(-50%);
     z-index:22;
     background:var(--chip);
@@ -77,10 +77,10 @@
     font-weight:900;
     font-size:13px;
     pointer-events:auto;
-    display:block;
+    display:none;
     touch-action:manipulation;
   }
-  body.topCollapsed #topHandle{ display:block; top:0; }
+  body.topCollapsed #topHandle{ display:block; }
   .iconBtn{
     background:transparent;
     border:0;
@@ -990,6 +990,80 @@ canvas.webgl { width: 100vw; height: 100svh; }
   will-change: transform;
 }
 
+/* Replié : on remonte presque tout en laissant la languette visible */
+#top.top-collapsed {
+  transform: translateY(calc(-100% + 22px));
+}
+
+/* Languette */
+#topHandle {
+  position: absolute;
+  left: 50%;
+  bottom: -22px;
+  transform: translateX(-50%);
+  height: 22px;
+  min-width: 110px;
+  padding: 0 12px;
+
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  font-size: 13px;
+  line-height: 22px;
+  text-align: center;
+
+  border-radius: 0 0 10px 10px;
+  z-index: 9999;
+
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+/* Optionnel : agrandir légèrement la zone tactile sur iPhone */
+@media (max-width: 480px) {
+  #topHandle {
+    height: 26px;
+    bottom: -26px;
+    line-height: 26px;
+    min-width: 120px;
+  }
+  #top.top-collapsed {
+    transform: translateY(calc(-100% + 26px));
+  }
+}
+
+
+/* === iPhone: languette Infos (toujours visible) === */
+#topHandle{ display:none; } /* défaut: caché sur desktop/iPad */
+@media (max-width: 520px){
+  #topHandle{
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    position:fixed !important;
+    left:50% !important;
+    top:0 !important; /* recalé par JS quand la barre est ouverte */
+    transform:translateX(-50%) !important;
+    z-index:99999 !important;
+    height:28px !important;
+    min-width:110px !important;
+    padding:0 14px !important;
+    border-radius:0 0 14px 14px !important;
+    border:1px solid var(--bd) !important;
+    border-top:0 !important;
+    background:rgba(0,0,0,0.78) !important;
+    color:#fff !important;
+    font-weight:900 !important;
+    font-size:13px !important;
+    line-height:28px !important;
+    cursor:pointer !important;
+    user-select:none !important;
+    -webkit-user-select:none !important;
+    touch-action:manipulation !important;
+    pointer-events:auto !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1076,7 +1150,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
   <div class="chip">Vies: <span id="livesStr">❤❤❤</span></div>
   <div class="chip">🏆 <span id="bestVal">--:--</span></div>
 </div>
-<div id="topHandle" aria-label="Afficher/Masquer infos" role="button" tabindex="0">Infos</div>
+<div id="topHandle" role="button" tabindex="0" aria-label="Afficher/Masquer infos">Infos</div>
 <div id="levelBadge">Niveau 1/6 — 2 niveaux × 12 barrettes</div>
 <div id="winBadge">✅ Résolu ! <button id="nextLevelBtn" class="pillBtn">Niveau suivant</button></div>
 <div id="lifeBonusBadge">🎁 +1 vie !</div>
@@ -5370,34 +5444,67 @@ try {
   setTimeout(reapplyPhotosMulti, 200);
 })();
 
-// --- Top panel collapse (mobile-friendly) ---
+// --- Top panel collapse (iPhone) --- 
 (function(){
   const top = document.getElementById('top');
   const btn = document.getElementById('topCollapseBtn');
   const handle = document.getElementById('topHandle');
   if(!top || !btn || !handle) return;
 
+  const ua = navigator.userAgent || '';
+  const isPhone = /iPhone|iPod/.test(ua) || (Math.min(screen.width, screen.height) <= 520 && 'ontouchstart' in window);
+  if(!isPhone){
+    // Sur PC/iPad : pas de repli automatique, pas de languette.
+    handle.style.display = 'none';
+    return;
+  }
+
+  function isCollapsed(){ return document.body.classList.contains('topCollapsed'); }
+
+  function positionHandle(){
+    // Quand ouvert : placer la languette juste sous la barre du haut.
+    // Quand replié : la coller en haut de l'écran.
+    try{
+      const collapsed = isCollapsed();
+      if(collapsed){
+        handle.style.top = '0px';
+      }else{
+        const r = top.getBoundingClientRect();
+        const y = Math.max(0, Math.round(r.bottom));
+        handle.style.top = y + 'px';
+      }
+    }catch(e){}
+  }
+
   function setCollapsed(v){
     document.body.classList.toggle('topCollapsed', !!v);
     try{ localStorage.setItem('topCollapsed', v ? '1' : '0'); }catch(e){}
+    // Recalage après transition + recalage immédiat
+    positionHandle();
+    setTimeout(positionHandle, 220);
   }
 
   function toggle(){
-    const v = !document.body.classList.contains('topCollapsed');
-    setCollapsed(v);
+    setCollapsed(!isCollapsed());
   }
-  btn.addEventListener('click', (e)=>{ e.stopPropagation(); toggle(); }, {passive:true});
-  handle.addEventListener('click', (e)=>{ e.stopPropagation(); toggle(); }, {passive:true});
-  handle.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggle(); } });
+
+  btn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); toggle(); }, {passive:false});
+  handle.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); toggle(); }, {passive:false});
+  handle.addEventListener('touchstart', (e)=>{ e.stopPropagation(); }, {passive:true});
+  handle.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggle(); } });
+
+  window.addEventListener('resize', ()=>{ positionHandle(); }, {passive:true});
+  window.addEventListener('orientationchange', ()=>{ setTimeout(positionHandle, 250); }, {passive:true});
 
   let saved = null;
   try{ saved = localStorage.getItem('topCollapsed'); }catch(e){}
-  const isPhone = /iPhone|iPod/.test(navigator.userAgent);
   if(saved === '1') setCollapsed(true);
   else if(saved === '0') setCollapsed(false);
-  else if(isPhone) setCollapsed(true); // default collapsed on iPhone to gain vertical space
-})();
+  else setCollapsed(true); // par défaut sur iPhone
 
+  // Recalage au tout début
+  setTimeout(positionHandle, 50);
+})();
 </script>
 
 </body>
