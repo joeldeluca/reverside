@@ -5377,7 +5377,7 @@ try {
   }
 
   btn.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(true); }, {passive:true});
-  handle\.addEventListener\('click', \(e\)=>\{ e\.stopPropagation\(\); setCollapsed\(false\); \}, \{passive:true\}\);
+  handle.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(false); }, {passive:true});
 
   // Accessibilité clavier (PC) : Enter/Espace sur la languette
   handle.addEventListener('keydown', (e)=>{
