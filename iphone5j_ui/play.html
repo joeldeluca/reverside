@@ -118,6 +118,29 @@
     z-index:21;
     pointer-events:none;
   }
+  /* Mini pastille niveau (dans le bandeau Infos) */
+  .lvlPill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    margin-left:8px;
+    padding:2px 8px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:12px;
+    line-height:1;
+    color:#d9f1ff;
+    background:rgba(0,140,255,0.22);
+    border:1px solid rgba(0,140,255,0.35);
+    white-space:nowrap;
+  }
+  @media (max-width: 600px){
+    .lvlPill{ font-size:11px; padding:2px 7px; margin-left:6px; }
+  }
+
+  /* Ancien badge flottant: on le désactive (remplacé par la pastille) */
+  #levelBadge{ display:none !important; }
+
 
   /* iPhone UX: le badge Niveau ne doit apparaître que quand le bandeau haut est replié */
   body:not(.topCollapsed) #levelBadge{ display:none !important; }
@@ -1210,7 +1233,7 @@ body.modalOpen #topHandle{ display:none !important; }
   <div class="chip">REVERside 3D <button id="topCollapseBtn" class="iconBtn" title="Réduire">▴</button></div>
   <div class="chip">Mode: <span id="modeHud">—</span> • Étape: <span id="stepHud">—</span> • <span id="seedHud" style="opacity:.85; margin-left:10px;"></span><span id="modeLabel">Chrono</span> • Niv: <span id="lvlName">1/4</span> • Coups: <span id="moves">0</span> • ⏱ <span id="timer">00:00</span> • Bonus: <span id="bank">+0</span></div>
   <div class="chip">Vies: <span id="livesStr">❤❤❤</span></div>
-  <div class="chip">🏆 <span id="bestVal">--:--</span></div>
+  <div class="chip">🏆 <span id="bestVal">--:--</span> <span id="lvlPill" class="lvlPill">Niv —/—</span></div>
 </div>
 <div id="topHandle">Infos</div>
 <div id="levelBadge">Niveau 1/6 — 2 niveaux × 12 barrettes</div>
@@ -1553,14 +1576,17 @@ function renderProgressionUI(){
   }
 
   const badge = byId("levelBadge");
+  const pill = byId("lvlPill");
   if (badge){
     const total = (typeof LEVELS !== "undefined" && LEVELS.length) ? LEVELS.length : 0;
     const floors = mode && mode.floors ? mode.floors : (typeof ROWS !== "undefined" ? ROWS : "?");
     const stepTxt = stepEl ? stepEl.textContent : "—";
     if (mode){
       badge.textContent = `Niv ${lvl}/${total||"?"}`;
+      if (pill) pill.textContent = `Niv ${lvl}/${total||"?"}`;
     } else {
       badge.textContent = `Niv ${lvl}/${total||"?"}`;
+      if (pill) pill.textContent = `Niv ${lvl}/${total||"?"}`;
     }
   }
 }
