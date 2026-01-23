@@ -1031,7 +1031,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
   /* languette Infos toujours visible + au-dessus de tout */
   #topHandle{
     position: fixed !important;
-    top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
     left: 12px !important;
     right: auto !important;
     bottom: auto !important;
@@ -1073,6 +1073,12 @@ canvas.webgl { width: 100vw; height: 100svh; }
   body.helpOpen #langBox{ display:flex !important; }
 }
 
+
+/* 2bis) Boutons À propos/Feedback : uniquement quand le bandeau est replié (sinon chevauche le titre) */
+@media (max-width: 700px){
+  body:not(.topCollapsed) #publicTopBtns{ opacity:0 !important; pointer-events:none !important; }
+  body.topCollapsed #publicTopBtns{ opacity:1 !important; pointer-events:auto !important; }
+}
 /* 2) Languette Infos: toujours visible et au-dessus de tout, placée à gauche */
 @media (max-width: 700px){
   #topHandle{
@@ -1163,7 +1169,7 @@ body.modalOpen #topHandle{ display:none !important; }
 
 
 <!-- Public UI additions (About / Feedback) -->
-<div id="publicTopBtns" style="position:fixed; right:12px; top:12px; z-index:9999; display:flex; gap:8px; flex-wrap:wrap;">
+<div id="publicTopBtns" style="position:fixed; right:12px; top:calc(env(safe-area-inset-top, 0px) + 12px); z-index:9999; display:flex; gap:8px; flex-wrap:wrap;">
   <button id="btnAbout" type="button" style="padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,.18); background:rgba(255,255,255,.92); cursor:pointer; font-weight:700;">
     À propos
   </button>
@@ -1919,7 +1925,18 @@ const bgMusicStatusEl = document.getElementById('bgMusicStatus');
   });
   bgMusicVolEl.addEventListener('input', () => {
     saveBgMusicPrefs();
-    if (bgMusicAudio) bgMusicAudio.volume = parseFloat(bgMusicVolEl.value || '0.25');
+    const v = parseFloat(bgMusicVolEl.value || '0.25');
+    if (bgMusicAudio) bgMusicAudio.volume = v;
+    // compat: si une autre instance audio est utilisée
+    const a = document.getElementById('bgMusicAudio');
+    if (a && a.volume != null) a.volume = v;
+  });
+  bgMusicVolEl.addEventListener('change', () => {
+    saveBgMusicPrefs();
+    const v = parseFloat(bgMusicVolEl.value || '0.25');
+    if (bgMusicAudio) bgMusicAudio.volume = v;
+    const a = document.getElementById('bgMusicAudio');
+    if (a && a.volume != null) a.volume = v;
   });
 
   
@@ -5333,8 +5350,8 @@ async function searchMoveX(K, maxDepth, options){
 
 
 
-  function show(el){ if (el) el.style.display = "flex"; }
-  function hide(el){ if (el) el.style.display = "none"; }
+  function show(el){ if (el) { el.style.display = "flex"; if (el===aboutModal || el===feedbackModal) document.body.classList.add("modalOpen"); } }
+  function hide(el){ if (el) { el.style.display = "none"; if (el===aboutModal || el===feedbackModal) document.body.classList.remove("modalOpen"); } }
 
   function esc(s){ return (s||"").replace(/\s+$/g,""); }
 
@@ -5380,8 +5397,8 @@ async function searchMoveX(K, maxDepth, options){
     feedbackMail.href = "mailto:deluca.joel@sfr.fr?subject=" + subject + "&body=" + body;
   }
 
-  btnAbout && btnAbout.addEventListener("click", ()=> show(aboutModal));
-  aboutClose && aboutClose.addEventListener("click", ()=> hide(aboutModal));
+  btnAbout && btnAbout.addEventListener("click", ()=> openModal(aboutModal));
+  aboutClose && aboutClose.addEventListener("click", ()=> closeModal(aboutModal));
   aboutModal && aboutModal.addEventListener("click", (e)=>{ if (e.target === aboutModal) hide(aboutModal); });
 
   btnFeedback && btnFeedback.addEventListener("click", ()=>{
@@ -5390,7 +5407,7 @@ async function searchMoveX(K, maxDepth, options){
     feedbackStatus.textContent = "";
     if (feedbackText) feedbackText.focus();
   });
-  feedbackClose && feedbackClose.addEventListener("click", ()=> hide(feedbackModal));
+  feedbackClose && feedbackClose.addEventListener("click", ()=> closeModal(feedbackModal));
   feedbackModal && feedbackModal.addEventListener("click", (e)=>{ if (e.target === feedbackModal) hide(feedbackModal); });
 
   feedbackCopy && feedbackCopy.addEventListener("click", async ()=>{
