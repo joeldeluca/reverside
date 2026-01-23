@@ -87,6 +87,7 @@
     pointer-events:none;
   }
   #winBadge{
+    display:none;
     position:fixed;
     left:50%;
     top:60px;
@@ -106,6 +107,9 @@
     pointer-events:none;
   }
   #winBadge.show{
+    display:flex;
+    align-items:center;
+    gap:10px;
     pointer-events:auto;
     opacity:1;
     transform:translateX(-50%) scale(1.02);
@@ -3468,12 +3472,23 @@ nhR.onclick = () => rotateLevelLogic(ROWS-1, -1);
   const hardBind = (el, fn)=>{
     if (!el) return;
     try { el.style.touchAction = 'manipulation'; } catch(e) {}
-    el.onclick = (ev)=>{ try{ fn(ev); }catch(e){} };
-    el.addEventListener('touchstart', (ev)=>{
-      // Do not preventDefault here; allow the browser to synthesize click if needed.
-      try{ fn(ev); }catch(e){}
-    }, {passive:true});
+
+    const wrap = (ev)=>{
+      try{
+        if (ev){
+          // Prevent taps from "falling through" to underlying UI (e.g., winBadge / next level).
+          try{ ev.preventDefault(); }catch(_){}
+          try{ ev.stopPropagation(); }catch(_){}
+        }
+        fn(ev);
+      }catch(e){}
+    };
+
+    // Prefer click (very stable on iOS in https), keep touchstart as a fast path.
+    el.onclick = wrap;
+    el.addEventListener('touchstart', wrap, {passive:false});
   };
+};
 
   const colUpBtn   = byId("colUp");
   const colDownBtn = byId("colDown");
@@ -3785,6 +3800,20 @@ if (modeSel){
         rebuildTexturesAndApply();
         setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 250);
         setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 800);
+        setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 1600);
+        setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 3200);
+
+        // iOS: also retry over a few animation frames (some devices apply material maps late)
+        try{
+          let __photoRafN = 0;
+          const __photoRaf = ()=>{
+            __photoRafN++;
+            try{ rebuildTexturesAndApply(); }catch(e){}
+            if (__photoRafN < 24) requestAnimationFrame(__photoRaf);
+          };
+          requestAnimationFrame(__photoRaf);
+        }catch(e){}
+
       }
     }catch(e){}
     layoutAll();
