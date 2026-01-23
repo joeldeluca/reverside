@@ -3292,6 +3292,47 @@ function updateTime(){
     // applyTextures() reassigns placeholder tiles (tilesF/tilesB) and would overwrite photo maps.
   }
 
+  // iOS: ensure images are fully decoded before slicing to CanvasTextures.
+  // Symptom: preview <img> is visible, but cylinder keeps numeric tiles (especially right after level changes).
+  function __imgReady(img){
+    try{
+      return !!(img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
+    }catch(e){ return false; }
+  }
+
+  function ensurePhotoApplied(tag){
+    if (!(frontImg || backImg)) return;
+
+    const tries = [0, 80, 180, 320, 520, 900, 1400];
+    const levelToken = currentLevelIndex;
+
+    // If images are not ready yet, attach a one-shot onload handler.
+    function attachOnce(img){
+      if (!img || __imgReady(img)) return;
+      const prev = img.onload;
+      img.onload = function(ev){
+        try{ if (typeof prev === "function") prev.call(this, ev); }catch(e){}
+        try{
+          if (currentLevelIndex !== levelToken) return;
+          rebuildTexturesAndApply();
+        }catch(e){}
+      };
+    }
+    attachOnce(frontImg);
+    attachOnce(backImg);
+
+    // Multi-retry on several frames; cheap and very effective on iOS 15.
+    tries.forEach((ms)=>{
+      setTimeout(()=>{
+        try{
+          if (currentLevelIndex !== levelToken) return;
+          if ((frontImg && !__imgReady(frontImg)) || (backImg && !__imgReady(backImg))) return;
+          rebuildTexturesAndApply();
+        }catch(e){}
+      }, ms);
+    });
+  }
+
 
   // Bouton « Revenir aux barrettes numérotées »
   const resetImagesBtn = byId("resetImagesBtn");
@@ -3780,13 +3821,7 @@ if (modeSel){
     try{ restoreImages(); }catch(e){}
 
     // …et enfin ré-applique les photos sur les faces (corrige iOS : perte après changement de niveau).
-    try{
-      if (frontImg || backImg){
-        rebuildTexturesAndApply();
-        setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 250);
-        setTimeout(()=>{ try{ rebuildTexturesAndApply(); }catch(e){} }, 800);
-      }
-    }catch(e){}
+    try{ ensurePhotoApplied("loadLevel"); }catch(e){}
     layoutAll();
     snapshotInitial();
 
