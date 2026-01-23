@@ -1075,6 +1075,52 @@ canvas.webgl { width: 100vw; height: 100svh; }
   z-index: 2000000 !important;
 }
 
+
+/* ===== iPhone overrides (v4) ===== */
+/* 1) Langue: cachée en jeu, visible seulement quand l'aide est ouverte */
+@media (max-width: 700px){
+  body:not(.helpOpen) #langBox{ display:none !important; }
+  body.helpOpen #langBox{ display:flex !important; }
+}
+
+/* 2) Languette Infos: toujours visible et au-dessus de tout, placée à gauche */
+@media (max-width: 700px){
+  #topHandle{
+    position: fixed !important;
+    left: 12px !important;
+    right: auto !important;
+    top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    bottom: auto !important;
+    transform: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 32px !important;
+    min-width: 92px !important;
+    padding: 0 14px !important;
+    border-radius: 16px !important;
+    z-index: 3000000 !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* 3) À propos / Feedback: modales lisibles + fermeture toujours accessible */
+#aboutModal, #feedbackModal{
+  background: rgba(0,0,0,0.55) !important;
+}
+#aboutModal .modalCard, #feedbackModal .modalCard{
+  background: rgba(8,12,20,0.92) !important;
+  color: #ffffff !important;
+}
+#aboutModal .modalCard * , #feedbackModal .modalCard *{
+  color: #ffffff !important;
+}
+#aboutClose, #feedbackClose{
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 3000001 !important;
+}
+
 </style>
 </head>
 <body>
@@ -5516,6 +5562,49 @@ try {
   else if(isPhone) setCollapsed(true); // default collapsed on iPhone to gain vertical space
 })();
 
+</script>
+
+
+<script>
+/* ===== Infos toggle binding (v4) ===== */
+(function(){
+  function ready(fn){
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+  ready(function(){
+    var handle = document.getElementById('topHandle');
+    var top = document.getElementById('top');
+    if (!handle || !top) return;
+
+    // Ensure visible on iPhone even if older CSS tried to hide it
+    try{
+      if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches){
+        handle.style.display = 'inline-flex';
+      }
+    }catch(e){}
+
+    function setCollapsed(collapsed){
+      document.body.classList.toggle('topCollapsed', collapsed);
+    }
+
+    // Sync initial state
+    if (!document.body.classList.contains('topCollapsed')) setCollapsed(false);
+
+    function toggle(){
+      setCollapsed(!document.body.classList.contains('topCollapsed'));
+    }
+
+    // Click on handle toggles
+    handle.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); toggle(); }, {passive:false});
+
+    // Also bind any existing collapse button if present
+    var btn = document.getElementById('topCollapseBtn') || document.getElementById('topToggle') || document.querySelector('[data-top-toggle]');
+    if (btn){
+      btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); toggle(); }, {passive:false});
+    }
+  });
+})();
 </script>
 
 </body>
