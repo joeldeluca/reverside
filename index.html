@@ -1,13 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>REVERside 3D</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>REVERside</title>
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#0b1220;color:#fff;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px}
+    .box{max-width:520px}
+    a{color:#9ad0ff}
+    .muted{opacity:.8}
+  </style>
 </head>
 <body>
-  <h1>REVERside 3D</h1>
-  <p><a href="play.html">Jouer</a></p>
-  <p>Astuce: si une mise à jour ne s'affiche pas, forcez le rechargement.</p>
+<div class="box">
+  <div id="status">Chargement de REVERside…</div>
+  <div class="muted" style="margin-top:10px" id="fallback" hidden>
+    <p>Impossible de trouver automatiquement la page. Essayez :</p>
+    <ul>
+      <li><a href="./iphone5j_ui/play.html">Mobile (iphone5j_ui)</a></li>
+      <li><a href="./iphone_ui/play.html">Mobile (iphone_ui)</a></li>
+      <li><a href="./desk.html">Desktop (desk.html)</a></li>
+      <li><a href="./play.html">Desktop (play.html)</a></li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(async function () {
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+  const isMobile = isIOS || isAndroid || (Math.min(screen.width, screen.height) <= 1024);
+
+  const mobileCandidates = [
+    "./iphone5j_ui/play.html",
+    "./iphone_ui/play.html",
+    "./iphone5j_ui/play.html",   // doublon volontaire (certains caches iOS sont capricieux)
+    "./iphone_ui/play.html"
+  ];
+
+  const desktopCandidates = [
+    "./desk.html",
+    "./play.html"
+  ];
+
+  const candidates = isMobile ? mobileCandidates : desktopCandidates;
+
+  async function exists(url){
+    try{
+      const r = await fetch(url + (url.includes("?") ? "&" : "?") + "probe=1", { cache: "no-store" });
+      return r && r.ok;
+    }catch(e){
+      return false;
+    }
+  }
+
+  for (const url of candidates){
+    if (await exists(url)){
+      location.replace(url + location.search + location.hash);
+      return;
+    }
+  }
+
+  // Si rien ne marche, on affiche des liens clairs au lieu d'un 404
+  document.getElementById("status").textContent = "Page non trouvée automatiquement.";
+  document.getElementById("fallback").hidden = false;
+})();
+</script>
 </body>
 </html>
+
