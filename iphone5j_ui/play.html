@@ -1092,6 +1092,19 @@ canvas.webgl { width: 100vw; height: 100svh; }
   }
 }
 
+
+/* === UX: langue uniquement dans l'Aide (overlay) === */
+#langBox{ display:none !important; }
+
+/* Astuce gestes: sur mobile, on la met dans l'Aide pour éviter l'encombrement */
+@media (max-width: 600px){
+  .hint{ display:none !important; }
+}
+
+@media (max-width: 600px){
+  #topHandle{ left: 12px !important; right:auto !important; transform:none !important; }
+}
+
 </style>
 </head>
 <body>
@@ -1127,7 +1140,8 @@ canvas.webgl { width: 100vw; height: 100svh; }
       <div class="onboardSlide" data-slide="0">
         <div class="onboardText">
           <div><b>But :</b> REVERside est un casse‑tête en 3 dimensions composé de barrettes disposées autour d’un cylindre. C'est un puzzle d’images apposées sur et dans un cylindre. Ses originalités premières sont les mouvements possibles pour les reconstituer. La faculté de charger ses propres images, photos ou autres permet de s'approprier le jeu. Le son est un élément important pour retrouver l'état résolu du puzzle. Enfin, après un 1er niveau relativement simple, on rentre peu à peu dans un des meilleurs casse‑têtes au monde, avec un nombre incroyable de probabilités !</div>
-          <div style="margin-top:10px"><b>Pour jouer :</b> cliquez sur le bouton rond en bas à droite pour afficher le panneau de contrôle (Mélange, Reset, Lecture, etc.).</div>
+          <div style="margin-top:10px"><b>Pour jouer :</b> cliquez sur le bouton rond en bas à droite pour ouvrir les commandes.
+          <div style="margin-top:10px"><b>Gestes :</b> Glisser pour tourner • Pincement / molette pour zoomer • Double‑tap pour recentrer.</div>e pour afficher le panneau de contrôle (Mélange, Reset, Lecture, etc.).</div>
         </div>
       </div>
 
@@ -4582,11 +4596,13 @@ async function searchMoveX(K, maxDepth, options){
 
   function show(){
     overlay.style.display = 'flex';
+    try { const lb=document.getElementById('langBox'); if(lb) lb.style.display='flex'; } catch(e) {}
     render();
   }
 
   function hide(){
     overlay.style.display = 'none';
+    try { const lb=document.getElementById('langBox'); if(lb) lb.style.display='none'; } catch(e) {}
   }
 
   function markSeen(){
