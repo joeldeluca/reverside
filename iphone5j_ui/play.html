@@ -983,6 +983,55 @@ canvas.webgl { width: 100vw; height: 100svh; }
 
 /* zfix: fab above overlays (iPhone) */
 #fabMain{ z-index: 20001 !important; }
+/* ===== TOP BAR RETRACTABLE (iPhone-safe) ===== */
+
+#top {
+  transition: transform 180ms ease;
+  will-change: transform;
+}
+
+/* Replié : on remonte presque tout en laissant la languette visible */
+#top.top-collapsed {
+  transform: translateY(calc(-100% + 22px));
+}
+
+/* Languette */
+#topHandle {
+  position: absolute;
+  left: 50%;
+  bottom: -22px;
+  transform: translateX(-50%);
+  height: 22px;
+  min-width: 110px;
+  padding: 0 12px;
+
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  font-size: 13px;
+  line-height: 22px;
+  text-align: center;
+
+  border-radius: 0 0 10px 10px;
+  z-index: 9999;
+
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+/* Optionnel : agrandir légèrement la zone tactile sur iPhone */
+@media (max-width: 480px) {
+  #topHandle {
+    height: 26px;
+    bottom: -26px;
+    line-height: 26px;
+    min-width: 120px;
+  }
+  #top.top-collapsed {
+    transform: translateY(calc(-100% + 26px));
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1068,6 +1117,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
   <div class="chip">Mode: <span id="modeHud">—</span> • Étape: <span id="stepHud">—</span> • <span id="seedHud" style="opacity:.85; margin-left:10px;"></span><span id="modeLabel">Chrono</span> • Niv: <span id="lvlName">1/4</span> • Coups: <span id="moves">0</span> • ⏱ <span id="timer">00:00</span> • Bonus: <span id="bank">+0</span></div>
   <div class="chip">Vies: <span id="livesStr">❤❤❤</span></div>
   <div class="chip">🏆 <span id="bestVal">--:--</span></div>
+<div id="topHandle" aria-label="Afficher/Masquer infos">Infos</div>
 </div>
 <div id="topHandle">Infos</div>
 <div id="levelBadge">Niveau 1/6 — 2 niveaux × 12 barrettes</div>
