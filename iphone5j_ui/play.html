@@ -118,6 +118,11 @@
     z-index:21;
     pointer-events:none;
   }
+
+  /* iPhone UX: le badge Niveau ne doit apparaître que quand le bandeau haut est replié */
+  body:not(.topCollapsed) #levelBadge{ display:none !important; }
+  body.topCollapsed #levelBadge{ display:block !important; }
+
   #winBadge{
     position:fixed;
     left:50%;
@@ -1553,9 +1558,9 @@ function renderProgressionUI(){
     const floors = mode && mode.floors ? mode.floors : (typeof ROWS !== "undefined" ? ROWS : "?");
     const stepTxt = stepEl ? stepEl.textContent : "—";
     if (mode){
-      badge.textContent = `Mode ${mode.name} — Étape ${stepTxt} • Niveau ${lvl}/${total||"?"} — ${floors} étages × ${COLS} barrettes`;
+      badge.textContent = `Niv ${lvl}/${total||"?"}`;
     } else {
-      badge.textContent = `Niveau ${lvl}/${total||"?"} — ${ROWS} niveaux × ${COLS} barrettes`;
+      badge.textContent = `Niv ${lvl}/${total||"?"}`;
     }
   }
 }
@@ -4011,7 +4016,7 @@ if (modeSel){
 
     byId("lvlName").textContent = displayLevel;
     byId("levelBadge").textContent =
-      `Niveau ${displayLevel} — ${ROWS} niveaux × ${COLS} barrettes`;
+      `Niv ${displayLevel}`;
 
     stepsByLevel = Array.from({length:ROWS},()=>0);
 
