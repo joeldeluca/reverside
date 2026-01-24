@@ -2292,35 +2292,7 @@ function playScaleSolved(){
 
     try{
       // Images par défaut (si rien n'est mémorisé)
-      
-      // --- iOS GPU safety: downscale large images to reduce texture memory (notably on iPhone X / iOS 16 Safari) ---
-      function downscaleImageIfNeeded(img, maxDim){
-        try{
-          if(!img || !img.width || !img.height) return img;
-          var w = img.width, h = img.height;
-          if(Math.max(w,h) <= maxDim) return img;
-          var scale = maxDim / Math.max(w,h);
-          var nw = Math.max(1, Math.round(w*scale));
-          var nh = Math.max(1, Math.round(h*scale));
-          var c = document.createElement('canvas');
-          c.width = nw; c.height = nh;
-          var ctx = c.getContext('2d');
-          ctx.imageSmoothingEnabled = true;
-          ctx.drawImage(img, 0, 0, nw, nh);
-          return c;
-        }catch(e){
-          return img;
-        }
-      }
-      function getIOSMaxImageDim(){
-        var dpr = window.devicePixelRatio || 1;
-        var w = Math.min(window.screen.width, window.screen.height);
-        var h = Math.max(window.screen.width, window.screen.height);
-        var isIPhoneXFamily = isIOS && (dpr >= 2.5) && (w === 375 && h === 812);
-        // Conservative values: keep enough quality but avoid WebGL allocation failures
-        return isIPhoneXFamily ? 768 : 1024;
-      }
-const defaultFront = "defaultFront.jpg";
+      const defaultFront = "defaultFront.jpg";
       const defaultBack = "defaultBack.jpg";
       const hadFr = LS.get(LS_KEYS.FRONT);
       const hadBk = LS.get(LS_KEYS.BACK);

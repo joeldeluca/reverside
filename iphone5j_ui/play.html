@@ -1156,8 +1156,82 @@ body.modalOpen #topHandle{ display:none !important; }
 }
 
 </style>
+
+<style>
+#diagOverlay{
+  position:fixed; left:8px; right:8px; bottom:8px; max-height:38vh; overflow:auto;
+  background:rgba(0,0,0,0.78); color:#d7f3ff; font:12px/1.35 -apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  padding:10px 12px; border-radius:14px; z-index:2147483647; display:none;
+}
+#diagOverlay .t{font-weight:700; margin-bottom:6px;}
+#diagOverlay .btns{display:flex; gap:8px; margin:8px 0 0;}
+#diagOverlay button{
+  border:0; padding:6px 10px; border-radius:10px; background:rgba(255,255,255,0.12); color:#fff;
+}
+</style>
+<script>
+(function(){
+  var D=document;
+  function mk(){
+    if (D.getElementById('diagOverlay')) return;
+    var o=D.createElement('div'); o.id='diagOverlay';
+    o.innerHTML='<div class="t">REVERside — diagnostic iPhone</div><div id="diagLog"></div><div class="btns"><button id="diagCopy">Copier</button><button id="diagHide">Masquer</button></div>';
+    D.body.appendChild(o);
+    D.getElementById('diagHide').onclick=function(){ o.style.display='none'; };
+    D.getElementById('diagCopy').onclick=function(){
+      try{
+        var txt=(D.getElementById('diagLog').innerText||'').slice(0,8000);
+        navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(txt) : null;
+      }catch(e){}
+    };
+  }
+  function show(){ try{ mk(); D.getElementById('diagOverlay').style.display='block'; }catch(e){} }
+  function log(msg){
+    try{
+      if (!D.body) return;
+      mk();
+      var l=D.getElementById('diagLog');
+      var p=D.createElement('div');
+      p.textContent = '['+new Date().toISOString().slice(11,19)+'] ' + msg;
+      l.appendChild(p);
+      D.getElementById('diagOverlay').style.display='block';
+      while(l.childNodes.length>80){ l.removeChild(l.firstChild); }
+    }catch(e){}
+  }
+  window.__DIAG_LOG__ = log;
+  window.addEventListener('load', function(){
+    log('load OK — UA='+(navigator.userAgent||''));
+    setTimeout(function(){
+      log('THREE='+(window.THREE ? 'OK' : 'ABSENT')+' ; WebGL='+(function(){try{var c=D.createElement("canvas"); return !!(c.getContext("webgl")||c.getContext("experimental-webgl"));}catch(e){return false;}})());
+    }, 50);
+  });
+
+  window.addEventListener('error', function(ev){
+    show();
+    log('ERROR: '+(ev.message||ev.error||'')+' @ '+(ev.filename||'')+':'+(ev.lineno||'') );
+  }, true);
+
+  window.addEventListener('unhandledrejection', function(ev){
+    show();
+    log('PROMISE: '+(ev.reason && (ev.reason.stack||ev.reason.message||String(ev.reason))) );
+  });
+
+  // trap WebGL context loss if renderer exists later
+  window.__wireWebGLContextLoss__ = function(canvas){
+    try{
+      if(!canvas || canvas.__wired__) return;
+      canvas.__wired__=true;
+      canvas.addEventListener('webglcontextlost', function(e){ try{ e.preventDefault(); }catch(_){}; show(); log('WebGL context LOST'); }, false);
+      canvas.addEventListener('webglcontextrestored', function(){ show(); log('WebGL context RESTORED'); }, false);
+    }catch(e){}
+  };
+})();
+</script>
+
 </head>
 <body>
+<div id="diagMount"></div>
+
 
 <div id="landscapeBlock" aria-hidden="true">
   <div class="box">
@@ -1464,6 +1538,7 @@ function stopAllAudio(){
       window.__THREE_READY__ = true;
       if (typeof window.bootGame === "function" && !window.__BOOTED__){
         window.__BOOTED__ = true;
+        try{window.__DIAG_LOG__&&window.__DIAG_LOG__('bootGame() called (loader)');}catch(e){}
         window.bootGame();
       }
       return;
@@ -4122,7 +4197,8 @@ if (modeSel){
 window.bootGame = bootGame;
 if (window.__THREE_READY__ && !window.__BOOTED__){
   window.__BOOTED__ = true;
-  try{ bootGame(); }catch(e){ console.error(e); }
+  try{ window.__DIAG_LOG__&&window.__DIAG_LOG__('bootGame() called (THREE ready)'); }catch(e){}
+  try{ bootGame(); }catch(e){ try{window.__DIAG_LOG__&&window.__DIAG_LOG__('bootGame ERROR: '+(e&&e.message?e.message:e));}catch(_e){}; console.error(e); }
 }
 
 
