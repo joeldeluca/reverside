@@ -1032,9 +1032,29 @@ canvas.webgl { width: 100vw; height: 100svh; }
   }
 }
 
+
+  /* Debug overlay (iOS devices without remote console) */
+  #debugOverlay{
+    position:fixed; left:8px; right:8px; bottom:8px;
+    max-height:40vh; overflow:auto;
+    background:rgba(0,0,0,.80);
+    color:#fff; font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    border:1px solid rgba(255,255,255,.15);
+    border-radius:12px;
+    padding:10px 12px;
+    z-index:99999;
+    display:none;
+    pointer-events:auto;
+    white-space:pre-wrap;
+  }
+  #debugOverlay .hdr{font-weight:800; margin-bottom:6px;}
+  #debugOverlay .btn{float:right; margin-left:10px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); color:#fff; border-radius:10px; padding:2px 8px;}
+
 </style>
 </head>
 <body>
+<div id="debugOverlay"><button class="btn" id="debugHide">Masquer</button><div class="hdr">Erreur (iPhone)</div><div id="debugText"></div></div>
+
 
 <div id="landscapeBlock" aria-hidden="true">
   <div class="box">
@@ -1316,6 +1336,36 @@ canvas.webgl { width: 100vw; height: 100svh; }
 </div>
 
 <script>
+/* --- DEBUG: capture JS errors on iOS where console is not accessible --- */
+(function(){
+  const box = ()=>document.getElementById('debugOverlay');
+  const txt = ()=>document.getElementById('debugText');
+  function show(msg){
+    try{
+      const b=box(), t=txt();
+      if(!b||!t) return;
+      b.style.display='block';
+      t.textContent = (t.textContent? (t.textContent+"\n"):"") + msg;
+    }catch(_){}
+  }
+  window.__RS_DEBUG_SHOW = show;
+  window.addEventListener('error', (e)=>{
+    const m = (e && (e.message||e.error&&e.error.message)) || 'Erreur JS';
+    const where = (e && e.filename) ? (e.filename.split('/').slice(-1)[0] + ":" + (e.lineno||0) + ":" + (e.colno||0)) : '';
+    show("[error] " + m + (where?(" @ "+where):""));
+  });
+  window.addEventListener('unhandledrejection', (e)=>{
+    const r = e && e.reason;
+    const m = (typeof r==='string')? r : (r && r.message) ? r.message : 'Promise rejetée';
+    show("[promise] " + m);
+  });
+  document.addEventListener('click', (ev)=>{
+    if(ev.target && ev.target.id==='debugHide'){
+      const b=box(); if(b) b.style.display='none';
+    }
+  });
+})();
+
 function stopAllAudio(){
   try{
     if (typeof audioCtx !== 'undefined' && audioCtx){
@@ -2256,7 +2306,27 @@ function playScaleSolved(){
 
   const cv = byId("cv");
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-  const renderer = new THREE.WebGLRenderer({antialias:false,canvas:cv,alpha:true,powerPreference:"high-performance"});
+  const renderer = (function(){
+      function tryMake(opts){
+        try{
+          const r = new THREE.WebGLRenderer(opts);
+          const gl = r.getContext && r.getContext();
+          if(!gl) throw new Error("WebGL context indisponible");
+          return r;
+        }catch(err){
+          if(window.__RS_DEBUG_SHOW) window.__RS_DEBUG_SHOW("Renderer init failed: " + (err && err.message ? err.message : err));
+          return null;
+        }
+      }
+      // 1) settings aimed at iOS stability (avoid high-performance on older devices)
+      let r = tryMake({antialias:false,canvas:cv,alpha:false,powerPreference:"low-power",precision:"mediump",stencil:false,depth:true,premultipliedAlpha:false,preserveDrawingBuffer:false});
+      // 2) fallback: simplest possible
+      if(!r) r = tryMake({antialias:false,canvas:cv,alpha:false,precision:"mediump"});
+      // 3) last resort: original intent
+      if(!r) r = tryMake({antialias:false,canvas:cv,alpha:true,powerPreference:"default"});
+      if(!r) throw new Error("Impossible d'initialiser WebGL sur cet appareil.");
+      return r;
+    })();
 
   // WebGL context loss handling (mobile Safari can drop context under memory pressure)
   try{
@@ -2317,7 +2387,7 @@ function playScaleSolved(){
 
   // On appliquera la taille réelle après création de la caméra.
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.25:2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1:2));
   renderer.setClearColor(0x000000,0);
   renderer.domElement.style.background='transparent';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -5069,8 +5139,8 @@ async function searchMoveX(K, maxDepth, options){
     });
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ()=>{try{init();}catch(e){if(window.__RS_DEBUG_SHOW) window.__RS_DEBUG_SHOW("init() crash: "+(e&&e.message?e.message:e));}});
+  else {try{init();}catch(e){if(window.__RS_DEBUG_SHOW) window.__RS_DEBUG_SHOW("init() crash: "+(e&&e.message?e.message:e));}}
 })();
 </script>
 
