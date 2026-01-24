@@ -86,7 +86,10 @@
   };
 })(window);
 </script>
-
+<script>
+// Ensure global binding LS exists even in some Safari scopes
+var LS = window.LS;
+</script>
 
   <!-- REVERSIDE_BUILD v167-iphone-hotfix3: landing+play split, help param, robust default images -->
 <meta charset="utf-8"/>
