@@ -1,72 +1,69 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>REVERside</title>
+  <title>REVERside — Chargement…</title>
+  <meta http-equiv="cache-control" content="no-cache" />
   <style>
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#0b1220;color:#fff;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px}
-    .box{max-width:520px}
-    a{color:#9ad0ff}
-    .muted{opacity:.8}
+    body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial; margin:0; background:#0b1220; color:#fff;}
+    .wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
+    .card{max-width:520px; width:100%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+      border-radius:18px; padding:18px 16px;}
+    .muted{opacity:.85; line-height:1.35}
+    a{color:#9bd; font-weight:700}
+    .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+    .btn{display:inline-block; padding:10px 12px; border-radius:999px; background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18); text-decoration:none}
   </style>
 </head>
 <body>
-<div class="box">
-  <div id="status">Chargement de REVERside…</div>
-  <div class="muted" style="margin-top:10px" id="fallback" hidden>
-    <p>Impossible de trouver automatiquement la page. Essayez :</p>
-    <ul>
-      <li><a href="./iphone5j_ui/play.html">Mobile (iphone5j_ui)</a></li>
-      <li><a href="./iphone_ui/play.html">Mobile (iphone_ui)</a></li>
-      <li><a href="./desk.html">Desktop (desk.html)</a></li>
-      <li><a href="./play.html">Desktop (play.html)</a></li>
-    </ul>
+  <div class="wrap">
+    <div class="card">
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px">Chargement de REVERside…</div>
+      <div class="muted">
+        Redirection automatique en cours. Si rien ne se passe, utilise un lien direct ci-dessous.
+      </div>
+      <div class="btns">
+        <a class="btn" id="linkMobile" href="./iphone5j_ui/play.html">Ouvrir version iPhone</a>
+        <a class="btn" id="linkDesk" href="./play.html">Ouvrir version Desktop</a>
+      </div>
+      <div class="muted" style="margin-top:10px;font-size:13px">
+        Astuce : si tu arrives ici depuis un favori ancien, supprime le favori et recrée-le sur <b>/reverside/</b>.
+      </div>
+    </div>
   </div>
-</div>
 
 <script>
-(async function () {
+(function(){
+  const q = location.search || "";
+  const h = location.hash || "";
   const ua = navigator.userAgent || "";
   const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const isAndroid = /Android/i.test(ua);
-  const isMobile = isIOS || isAndroid || (Math.min(screen.width, screen.height) <= 1024);
+  const isAndroid = /Android/.test(ua);
+  const isMobile = isIOS || isAndroid || (matchMedia && matchMedia("(max-width: 900px)").matches);
 
-  const mobileCandidates = [
-    "./iphone5j_ui/play.html",
-    "./iphone_ui/play.html",
-    "./iphone5j_ui/play.html",   // doublon volontaire (certains caches iOS sont capricieux)
-    "./iphone_ui/play.html"
-  ];
+  // Cibles (relatives au dossier /reverside/)
+  const targetMobile = "./iphone5j_ui/play.html" + q + h;
+  const targetDesk   = "./play.html" + q + h;
 
-  const desktopCandidates = [
-    "./desk.html",
-    "./play.html"
-  ];
+  // Mets à jour les liens de fallback
+  document.getElementById("linkMobile").href = targetMobile;
+  document.getElementById("linkDesk").href   = targetDesk;
 
-  const candidates = isMobile ? mobileCandidates : desktopCandidates;
+  // Redirection
+  const target = isMobile ? targetMobile : targetDesk;
 
-  async function exists(url){
-    try{
-      const r = await fetch(url + (url.includes("?") ? "&" : "?") + "probe=1", { cache: "no-store" });
-      return r && r.ok;
-    }catch(e){
-      return false;
-    }
-  }
+  // Sécurité anti-boucle : si on est déjà sur la cible, ne rien faire
+  const here = location.pathname.replace(/\/+$/,"");
+  const want = (isMobile ? "/reverside/iphone5j_ui/play.html" : "/reverside/play.html").replace(/\/+$/,"");
+  if (here.endsWith(want)) return;
 
-  for (const url of candidates){
-    if (await exists(url)){
-      location.replace(url + location.search + location.hash);
-      return;
-    }
-  }
+  // Redirection immédiate
+  location.replace(target);
 
-  // Si rien ne marche, on affiche des liens clairs au lieu d'un 404
-  document.getElementById("status").textContent = "Page non trouvée automatiquement.";
-  document.getElementById("fallback").hidden = false;
+  // Fallback : si Safari n’a pas redirigé (cas rare), on laisse les boutons
 })();
 </script>
 </body>
 </html>
-
