@@ -118,6 +118,34 @@
     z-index:21;
     pointer-events:none;
   }
+  /* Mini pastille niveau (dans le bandeau Infos) */
+  .lvlPill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    margin-left:8px;
+    padding:2px 8px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:12px;
+    line-height:1;
+    color:#d9f1ff;
+    background:rgba(0,140,255,0.22);
+    border:1px solid rgba(0,140,255,0.35);
+    white-space:nowrap;
+  }
+  @media (max-width: 600px){
+    .lvlPill{ font-size:11px; padding:2px 7px; margin-left:6px; }
+  }
+
+  /* Ancien badge flottant: on le désactive (remplacé par la pastille) */
+  #levelBadge{ display:none !important; }
+
+
+  /* iPhone UX: le badge Niveau ne doit apparaître que quand le bandeau haut est replié */
+  body:not(.topCollapsed) #levelBadge{ display:none !important; }
+  body.topCollapsed #levelBadge{ display:block !important; }
+
   #winBadge{
     position:fixed;
     left:50%;
@@ -995,97 +1023,141 @@ canvas.webgl { width: 100vw; height: 100svh; }
   transform: translateY(calc(-100% + 22px));
 }
 
-/* Languette */
-#topHandle {
-  position: absolute;
-  left: 50%;
-  bottom: -22px;
-  transform: translateX(-50%);
-  height: 22px;
-  min-width: 110px;
-  padding: 0 12px;
+/* --- iPhone UI fixes (Infos / Langue / Hint / Viewport) --- */
+@media (max-width: 600px){
+  /* remonter légèrement la scène sur iPhone */
+  canvas.webgl, #hOverlay2D{ transform: translateY(-6vh); }
 
-  background: rgba(0,0,0,0.75);
-  color: #fff;
-  font-size: 13px;
-  line-height: 22px;
-  text-align: center;
-
-  border-radius: 0 0 10px 10px;
-  z-index: 9999;
-
-  cursor: pointer;
-  touch-action: manipulation;
-  user-select: none;
-}
-
-/* Optionnel : agrandir légèrement la zone tactile sur iPhone */
-@media (max-width: 480px) {
-  #topHandle {
-    height: 26px;
-    bottom: -26px;
-    line-height: 26px;
-    min-width: 120px;
+  /* languette Infos toujours visible + au-dessus de tout */
+  #topHandle{
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+    left: 12px !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    z-index: 999999 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
   }
-  #top.top-collapsed {
-    transform: translateY(calc(-100% + 26px));
+
+  /* la langue n'a pas besoin d'être persistante en jeu (visible seulement dans l'aide) */
+  #langBox{
+    z-index: 1200 !important;
+    display: none !important;
+  }
+  body.helpOpen #langBox{
+    display: flex !important;
+  }
+
+  /* la bulle d'astuce bas ne doit jamais gêner les contrôles */
+  .hint, #hint, #gestureHint{
+    pointer-events: none !important;
+    z-index: 10 !important;
+    opacity: 0 !important; /* cachée sur iPhone : intégrée dans l'aide */
+  }
+}
+
+/* rendre les modales au-dessus du reste (y compris Safari UI) */
+#aboutModal, #feedbackModal, #onboardOverlay{
+  z-index: 2000000 !important;
+}
+
+
+/* ===== iPhone overrides (v4) ===== */
+/* 1) Langue: cachée en jeu, visible seulement quand l'aide est ouverte */
+@media (max-width: 700px){
+  body:not(.helpOpen) #langBox{ display:none !important; }
+  body.helpOpen #langBox{ display:flex !important; }
+}
+
+
+/* 2bis) Boutons À propos/Feedback : uniquement quand le bandeau est replié (sinon chevauche le titre) */
+@media (max-width: 700px){
+  body:not(.topCollapsed) #publicTopBtns{ opacity:0 !important; pointer-events:none !important; }
+  body.topCollapsed #publicTopBtns{ opacity:1 !important; pointer-events:auto !important; }
+}
+/* 2) Languette Infos: toujours visible et au-dessus de tout, placée à gauche */
+@media (max-width: 700px){
+  #topHandle{
+    position: fixed !important;
+    left: 12px !important;
+    right: auto !important;
+    top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    bottom: auto !important;
+    transform: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 32px !important;
+    min-width: 92px !important;
+    padding: 0 14px !important;
+    border-radius: 16px !important;
+    z-index: 3000000 !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* 3) À propos / Feedback: modales lisibles + fermeture toujours accessible */
+#aboutModal, #feedbackModal{
+  background: rgba(0,0,0,0.55) !important;
+}
+#aboutModal .modalCard, #feedbackModal .modalCard{
+  background: rgba(8,12,20,0.92) !important;
+  color: #ffffff !important;
+}
+#aboutModal .modalCard * , #feedbackModal .modalCard *{
+  color: #ffffff !important;
+}
+#aboutClose, #feedbackClose{
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 3000001 !important;
+}
+
+
+/* v5: force dark card for inline-styled About/Feedback modals (iOS) */
+#aboutModal > div, #feedbackModal > div{
+  background: rgba(8,12,20,0.94) !important;
+  color: #ffffff !important;
+}
+#aboutModal > div * , #feedbackModal > div *{
+  color: #ffffff !important;
+}
+#aboutModal hr, #feedbackModal hr{
+  border-top-color: rgba(255,255,255,0.18) !important;
+}
+#aboutModal #aboutClose, #feedbackModal #feedbackClose{
+  background: rgba(255,255,255,0.12) !important;
+  color: #ffffff !important;
+}
+
+/* v5: iPhone handle always tappable, avoid Safari UI area */
+@media (max-width: 700px){
+  #topHandle{
+    top: calc(env(safe-area-inset-top, 0px) + 52px) !important;
+    height: 38px !important;
+    min-width: 104px !important;
+    font-size: 14px !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
 }
 
 
-/* RS v12 probe overlay */
-#rsBuildTag{
-  position:fixed; left:10px; bottom:10px; z-index:999999;
-  padding:6px 10px; border-radius:999px;
-  background:rgba(0,0,0,.55); color:#fff;
-  font:12px/1.1 system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;
-  pointer-events:none;
+/* v6: hide Infos handle when overlays/modals are open (avoid overlapping close buttons) */
+body.helpOpen #topHandle,
+body.modalOpen #topHandle{ display:none !important; }
+
+/* v6: on iPhone, keep Infos handle available (toggle), except when overlays open */
+@media (max-width: 700px){
+  #topHandle{ display:inline-flex !important; align-items:center; justify-content:center; }
 }
-#rsErrBox{
-  position:fixed; left:10px; right:10px; bottom:48px; z-index:999999;
-  background:rgba(0,0,0,.82); color:#fff; border:1px solid rgba(255,255,255,.18);
-  border-radius:14px; padding:10px 12px;
-}
+
 </style>
-
-<script>
-(function(){
-  function showErr(msg){
-    try{
-      var box = document.getElementById("rsErrBox");
-      var pre = document.getElementById("rsErrText");
-      if (!box || !pre) return;
-      pre.textContent = String(msg||"");
-      box.style.display = "block";
-    }catch(e){}
-  }
-  window.__RS_SHOWERR__ = showErr;
-
-  window.addEventListener("error", function(e){
-    showErr("JS error: " + (e && e.message ? e.message : e));
-  });
-
-  window.addEventListener("unhandledrejection", function(e){
-    var r = e && e.reason ? e.reason : e;
-    showErr("Promise rejection: " + (r && r.message ? r.message : String(r)));
-  });
-
-  // watchdog: if nothing initializes, show a hint
-  setTimeout(function(){
-    if (!window.__THREE_READY__) showErr("THREE n'a pas été chargé. Vérifier three.min.js / réseau / cache.");
-    else if (!window.__RS_RENDERER_OK__) showErr("THREE chargé, mais rendu non initialisé (probable WebGL / mémoire GPU).");
-  }, 4500);
-})();
-</script>
 </head>
 <body>
-<!-- BUILD_TAG: RS_v12_iOS16_probe -->
-<div id="rsBuildTag">REVERside · build v12 (iOS16 probe)</div>
-<div id="rsErrBox" aria-live="polite" style="display:none">
-  <div style="font-weight:900;margin-bottom:6px">Diagnostic iPhone</div>
-  <pre id="rsErrText" style="white-space:pre-wrap;margin:0;font:12px/1.25 ui-monospace,Menlo,Consolas,monospace"></pre>
-</div>
-
 
 <div id="landscapeBlock" aria-hidden="true">
   <div class="box">
@@ -1097,7 +1169,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
 
 
 <!-- Public UI additions (About / Feedback) -->
-<div id="publicTopBtns" style="position:fixed; right:12px; top:12px; z-index:9999; display:flex; gap:8px; flex-wrap:wrap;">
+<div id="publicTopBtns" style="position:fixed; right:12px; top:calc(env(safe-area-inset-top, 0px) + 12px); z-index:9999; display:flex; gap:8px; flex-wrap:wrap;">
   <button id="btnAbout" type="button" style="padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,.18); background:rgba(255,255,255,.92); cursor:pointer; font-weight:700;">
     À propos
   </button>
@@ -1167,8 +1239,7 @@ canvas.webgl { width: 100vw; height: 100svh; }
   <div class="chip">REVERside 3D <button id="topCollapseBtn" class="iconBtn" title="Réduire">▴</button></div>
   <div class="chip">Mode: <span id="modeHud">—</span> • Étape: <span id="stepHud">—</span> • <span id="seedHud" style="opacity:.85; margin-left:10px;"></span><span id="modeLabel">Chrono</span> • Niv: <span id="lvlName">1/4</span> • Coups: <span id="moves">0</span> • ⏱ <span id="timer">00:00</span> • Bonus: <span id="bank">+0</span></div>
   <div class="chip">Vies: <span id="livesStr">❤❤❤</span></div>
-  <div class="chip">🏆 <span id="bestVal">--:--</span></div>
-<div id="topHandle" aria-label="Afficher/Masquer infos">Infos</div>
+  <div class="chip">🏆 <span id="bestVal">--:--</span> <span id="lvlPill" class="lvlPill">Niv —/—</span></div>
 </div>
 <div id="topHandle">Infos</div>
 <div id="levelBadge">Niveau 1/6 — 2 niveaux × 12 barrettes</div>
@@ -1381,7 +1452,6 @@ function stopAllAudio(){
 (function(){
   const ov = document.getElementById("overlay");
   const srcs = [
-    "../three.min.js",
     "./three.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js",
     "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js",
@@ -1512,14 +1582,17 @@ function renderProgressionUI(){
   }
 
   const badge = byId("levelBadge");
+  const pill = byId("lvlPill");
   if (badge){
     const total = (typeof LEVELS !== "undefined" && LEVELS.length) ? LEVELS.length : 0;
     const floors = mode && mode.floors ? mode.floors : (typeof ROWS !== "undefined" ? ROWS : "?");
     const stepTxt = stepEl ? stepEl.textContent : "—";
     if (mode){
-      badge.textContent = `Mode ${mode.name} — Étape ${stepTxt} • Niveau ${lvl}/${total||"?"} — ${floors} étages × ${COLS} barrettes`;
+      badge.textContent = `Niv ${lvl}/${total||"?"}`;
+      if (pill) pill.textContent = `Niv ${lvl}/${total||"?"}`;
     } else {
-      badge.textContent = `Niveau ${lvl}/${total||"?"} — ${ROWS} niveaux × ${COLS} barrettes`;
+      badge.textContent = `Niv ${lvl}/${total||"?"}`;
+      if (pill) pill.textContent = `Niv ${lvl}/${total||"?"}`;
     }
   }
 }
@@ -1852,7 +1925,18 @@ const bgMusicStatusEl = document.getElementById('bgMusicStatus');
   });
   bgMusicVolEl.addEventListener('input', () => {
     saveBgMusicPrefs();
-    if (bgMusicAudio) bgMusicAudio.volume = parseFloat(bgMusicVolEl.value || '0.25');
+    const v = parseFloat(bgMusicVolEl.value || '0.25');
+    if (bgMusicAudio) bgMusicAudio.volume = v;
+    // compat: si une autre instance audio est utilisée
+    const a = document.getElementById('bgMusicAudio');
+    if (a && a.volume != null) a.volume = v;
+  });
+  bgMusicVolEl.addEventListener('change', () => {
+    saveBgMusicPrefs();
+    const v = parseFloat(bgMusicVolEl.value || '0.25');
+    if (bgMusicAudio) bgMusicAudio.volume = v;
+    const a = document.getElementById('bgMusicAudio');
+    if (a && a.volume != null) a.volume = v;
   });
 
   
@@ -2307,15 +2391,28 @@ function playScaleSolved(){
 
   const cv = byId("cv");
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-  let renderer;
-  try{
-    renderer = new THREE.WebGLRenderer({antialias:false,canvas:cv,alpha:false,powerPreference:"low-power"});
-    window.__RS_RENDERER_OK__ = true;
-  }catch(e){
-    window.__RS_RENDERER_OK__ = false;
-    if (window.__RS_SHOWERR__) window.__RS_SHOWERR__("WebGLRenderer init failed: " + (e && e.message ? e.message : e));
-    throw e;
-  }
+  // iOS 16 (notably some Safari builds on iPhone X) can silently fail with WebGL2.
+// We explicitly request a WebGL1 context first, then pass it to Three.js.
+let gl = null;
+try {
+  gl = cv.getContext('webgl', { alpha: true, antialias: false, premultipliedAlpha: true, preserveDrawingBuffer: false });
+  if (!gl) gl = cv.getContext('experimental-webgl', { alpha: true, antialias: false });
+} catch (e) {
+  gl = null;
+}
+
+const renderer = gl
+  ? new THREE.WebGLRenderer({ canvas: cv, context: gl, alpha: true, antialias: false, powerPreference: 'high-performance' })
+  : new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: false, powerPreference: 'high-performance' });
+
+cv.addEventListener('webglcontextlost', (ev) => {
+  try { ev.preventDefault(); } catch (e) {}
+  console.warn('[REVERside] WebGL context lost');
+}, false);
+
+cv.addEventListener('webglcontextrestored', () => {
+  console.warn('[REVERside] WebGL context restored');
+}, false);
 
   // WebGL context loss handling (mobile Safari can drop context under memory pressure)
   try{
@@ -2377,8 +2474,8 @@ function playScaleSolved(){
   // On appliquera la taille réelle après création de la caméra.
 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.25:2));
-  renderer.setClearColor(0x000000,1);
-  renderer.domElement.style.background='black';
+  renderer.setClearColor(0x000000,0);
+  renderer.domElement.style.background='transparent';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.18;
@@ -3983,7 +4080,7 @@ if (modeSel){
 
     byId("lvlName").textContent = displayLevel;
     byId("levelBadge").textContent =
-      `Niveau ${displayLevel} — ${ROWS} niveaux × ${COLS} barrettes`;
+      `Niv ${displayLevel}`;
 
     stepsByLevel = Array.from({length:ROWS},()=>0);
 
@@ -4583,11 +4680,18 @@ async function searchMoveX(K, maxDepth, options){
 
   function show(){
     overlay.style.display = 'flex';
+    document.body.classList.add('helpOpen');
+    // show language switch only inside help on mobile
+    const lb = document.getElementById('langBox');
+    if (lb && window.matchMedia && window.matchMedia('(max-width: 600px)').matches) lb.style.display = 'flex';
     render();
   }
 
   function hide(){
     overlay.style.display = 'none';
+    document.body.classList.remove('helpOpen');
+    const lb = document.getElementById('langBox');
+    if (lb && window.matchMedia && window.matchMedia('(max-width: 600px)').matches) lb.style.display = 'none';
   }
 
   function markSeen(){
@@ -5234,8 +5338,41 @@ async function searchMoveX(K, maxDepth, options){
   const feedbackMail = document.getElementById("feedbackMail");
   const feedbackStatus = document.getElementById("feedbackStatus");
 
-  function show(el){ if (el) el.style.display = "flex"; }
-  function hide(el){ if (el) el.style.display = "none"; }
+  // --- Robust modal close on iPhone (backdrop + ESC) ---
+  function closeModal(modal){
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.body.classList.remove('modalOpen');
+  }
+  function openModal(modal){
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.body.classList.add('modalOpen');
+  }
+
+  // Ensure About/Feedback sit above everything
+  if (aboutModal) aboutModal.style.zIndex = '2000000';
+  if (feedbackModal) feedbackModal.style.zIndex = '2000000';
+
+  // Close on backdrop click
+  if (aboutModal){
+    aboutModal.addEventListener('click', (e)=>{ if (e.target === aboutModal) closeModal(aboutModal); });
+  }
+  if (feedbackModal){
+    feedbackModal.addEventListener('click', (e)=>{ if (e.target === feedbackModal) closeModal(feedbackModal); });
+  }
+  // Close on ESC
+  window.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape'){
+      if (aboutModal && aboutModal.style.display !== 'none') closeModal(aboutModal);
+      if (feedbackModal && feedbackModal.style.display !== 'none') closeModal(feedbackModal);
+    }
+  });
+
+
+
+  function show(el){ if (el) { el.style.display = "flex"; if (el===aboutModal || el===feedbackModal) document.body.classList.add("modalOpen"); } }
+  function hide(el){ if (el) { el.style.display = "none"; if (el===aboutModal || el===feedbackModal) document.body.classList.remove("modalOpen"); } }
 
   function esc(s){ return (s||"").replace(/\s+$/g,""); }
 
@@ -5281,8 +5418,8 @@ async function searchMoveX(K, maxDepth, options){
     feedbackMail.href = "mailto:deluca.joel@sfr.fr?subject=" + subject + "&body=" + body;
   }
 
-  btnAbout && btnAbout.addEventListener("click", ()=> show(aboutModal));
-  aboutClose && aboutClose.addEventListener("click", ()=> hide(aboutModal));
+  btnAbout && btnAbout.addEventListener("click", ()=> openModal(aboutModal));
+  aboutClose && aboutClose.addEventListener("click", ()=> closeModal(aboutModal));
   aboutModal && aboutModal.addEventListener("click", (e)=>{ if (e.target === aboutModal) hide(aboutModal); });
 
   btnFeedback && btnFeedback.addEventListener("click", ()=>{
@@ -5291,7 +5428,7 @@ async function searchMoveX(K, maxDepth, options){
     feedbackStatus.textContent = "";
     if (feedbackText) feedbackText.focus();
   });
-  feedbackClose && feedbackClose.addEventListener("click", ()=> hide(feedbackModal));
+  feedbackClose && feedbackClose.addEventListener("click", ()=> closeModal(feedbackModal));
   feedbackModal && feedbackModal.addEventListener("click", (e)=>{ if (e.target === feedbackModal) hide(feedbackModal); });
 
   feedbackCopy && feedbackCopy.addEventListener("click", async ()=>{
@@ -5485,8 +5622,8 @@ try {
     try{ localStorage.setItem('topCollapsed', v ? '1' : '0'); }catch(e){}
   }
 
-  btn.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(true); }, {passive:true});
-  handle.addEventListener('click', (e)=>{ e.stopPropagation(); setCollapsed(false); }, {passive:true});
+  btn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setCollapsed(!document.body.classList.contains('topCollapsed')); }, {passive:false});
+  handle.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setCollapsed(!document.body.classList.contains('topCollapsed')); }, {passive:false});
 
   let saved = null;
   try{ saved = localStorage.getItem('topCollapsed'); }catch(e){}
@@ -5497,6 +5634,7 @@ try {
 })();
 
 </script>
+
 
 </body>
 </html>
