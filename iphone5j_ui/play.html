@@ -1158,6 +1158,34 @@ body.modalOpen #topHandle{ display:none !important; }
 </style>
 </head>
 <body>
+<div id="rs-fatal" style="position:fixed;left:12px;right:12px;bottom:12px;max-height:45vh;overflow:auto;
+background:rgba(0,0,0,0.85);color:#fff;padding:12px 14px;border-radius:12px;
+font:14px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;z-index:999999;display:none;white-space:pre-wrap;"></div>
+<script>
+(function(){
+  const el = document.getElementById('rs-fatal');
+  function show(msg){
+    try{ el.style.display='block'; el.textContent = String(msg||'Erreur inconnue'); }catch(e){}
+  }
+  window.__RS_SHOW_FATAL = show;
+  window.addEventListener('error', function(ev){
+    const msg = (ev && (ev.message || (ev.error && ev.error.message))) || 'Erreur JavaScript';
+    show('REVERside — erreur\n' + msg + (ev && ev.filename ? ('\n' + ev.filename + ':' + ev.lineno) : ''));
+  });
+  window.addEventListener('unhandledrejection', function(ev){
+    let msg = 'Promise rejetée';
+    try{ msg = (ev && ev.reason && (ev.reason.stack || ev.reason.message)) || String(ev.reason || msg); }catch(e){}
+    show('REVERside — erreur\n' + msg);
+  });
+  // watchdog: if nothing progresses in 8s, display hints
+  setTimeout(function(){
+    if(!window.__RS_BOOT_OK){
+      show('REVERside — blocage au chargement\n\nCe modèle iPhone semble rencontrer un problème WebGL/texture.\n\n1) Vérifie que Safari n\'est pas en mode "économie de données" / bloqueur.\n2) Essaie de recharger la page.\n\nDétails (si dispo):\nUA=' + navigator.userAgent);
+    }
+  }, 8000);
+})();
+</script>
+
 
 <div id="landscapeBlock" aria-hidden="true">
   <div class="box">
@@ -2279,14 +2307,35 @@ function playScaleSolved(){
     const resolveSrc = (src)=>{
       try { return new URL(src, window.location.href).toString(); } catch(e) { return src; }
     };
-    const loadImg = (src, onok)=>{
+    const loadImg = (src, onok, onerr) => {
       const im = new Image();
-      // Only set crossOrigin for remote URLs; on same-origin it is unnecessary and can be fragile on iOS.
-      const s = String(src||'');
-      if (/^https?:\/\//i.test(s)) im.crossOrigin = "anonymous";
-      im.decoding = "async";
-      im.onload = async ()=>{ try{ if(im.decode) await im.decode(); }catch(e){} onok(im); };
-      im.onerror = ()=>{ /* silent */ };
+      im.crossOrigin = 'anonymous';
+      im.onload = async () => {
+        try { if (im.decode) await im.decode(); } catch(e) {}
+        try {
+          // iOS (notamment iPhone X) : réduire la taille des textures pour éviter un échec WebGL silencieux
+          const ua = navigator.userAgent || '';
+          const isIOS = /iP(hone|od|ad)/.test(ua);
+          const maxSide = (isIOS ? 1024 : 2048); // suffisant pour le rendu, limite la mémoire
+          const w = im.naturalWidth || im.width || 0;
+          const h = im.naturalHeight || im.height || 0;
+          if (isIOS && w && h && (w > maxSide || h > maxSide)) {
+            const s = Math.min(maxSide / w, maxSide / h);
+            const cw = Math.max(1, Math.round(w * s));
+            const ch = Math.max(1, Math.round(h * s));
+            const c = document.createElement('canvas');
+            c.width = cw; c.height = ch;
+            const ctx = c.getContext('2d', { alpha: false });
+            ctx.drawImage(im, 0, 0, cw, ch);
+            onok(c);
+            return;
+          }
+        } catch(e) {
+          // si la réduction échoue, on continue avec l'image brute
+        }
+        onok(im);
+      };
+      im.onerror = () => onerr();
       im.src = resolveSrc(src);
     };
 
@@ -2401,9 +2450,10 @@ try {
   gl = null;
 }
 
+const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent||'');
 const renderer = gl
-  ? new THREE.WebGLRenderer({ canvas: cv, context: gl, alpha: true, antialias: false, powerPreference: 'high-performance' })
-  : new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: false, powerPreference: 'high-performance' });
+  ? new THREE.WebGLRenderer({ canvas: cv, context: gl, alpha: true, antialias: false, powerPreference: (isIOS ? 'low-power' : 'high-performance'), precision: (isIOS ? 'mediump' : 'highp') })
+  : new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: false, powerPreference: (isIOS ? 'low-power' : 'high-performance'), precision: (isIOS ? 'mediump' : 'highp') });
 
 cv.addEventListener('webglcontextlost', (ev) => {
   try { ev.preventDefault(); } catch (e) {}
@@ -2473,7 +2523,7 @@ cv.addEventListener('webglcontextrestored', () => {
 
   // On appliquera la taille réelle après création de la caméra.
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.25:2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isIOS?1.0:2));
   renderer.setClearColor(0x000000,0);
   renderer.domElement.style.background='transparent';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -4059,6 +4109,7 @@ if (modeSel){
   cv.addEventListener("touchend",()=>{touchDragging=false; pinchPrev=null;},{passive:true});
 
   function animate(){
+    window.__RS_BOOT_OK = true;
     updateTime();
     updateSlot();
     renderer.render(scene,camera);
