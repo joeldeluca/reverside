@@ -1,6 +1,56 @@
 <!doctype html>
 <html lang="fr">
 <head>
+<script>
+(function(){
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  window.__FATAL = function(title, details){
+    try{
+      var id='rv_fatal_overlay';
+      var el=document.getElementById(id);
+      if(!el){
+        el=document.createElement('div');
+        el.id=id;
+        el.style.position='fixed';
+        el.style.left='10px';
+        el.style.right='10px';
+        el.style.bottom='12px';
+        el.style.zIndex='999999';
+        el.style.background='rgba(0,0,0,0.78)';
+        el.style.color='#fff';
+        el.style.padding='14px 14px';
+        el.style.borderRadius='14px';
+        el.style.fontFamily='-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif';
+        el.style.fontSize='14px';
+        el.style.lineHeight='1.35';
+        el.style.maxHeight='45vh';
+        el.style.overflow='auto';
+        el.innerHTML='<div style="font-weight:700;font-size:16px;margin-bottom:8px">'+esc(title||'REVERside — erreur')+'</div>'
+          +'<div style="white-space:pre-wrap;opacity:0.95">'+esc(details||'')+'</div>';
+        document.body.appendChild(el);
+      }else{
+        el.innerHTML='<div style="font-weight:700;font-size:16px;margin-bottom:8px">'+esc(title||'REVERside — erreur')+'</div>'
+          +'<div style="white-space:pre-wrap;opacity:0.95">'+esc(details||'')+'</div>';
+      }
+    }catch(e){}
+  };
+  window.addEventListener('error', function(ev){
+    try{
+      var msg = (ev && (ev.message||'')) ? ev.message : 'Erreur JavaScript';
+      var src = ev && ev.filename ? ev.filename : '';
+      var line = ev && ev.lineno ? ev.lineno : '';
+      window.__FATAL('REVERside — erreur', msg + (src?('\n'+src+':'+line):''));
+    }catch(e){}
+  });
+  window.addEventListener('unhandledrejection', function(ev){
+    try{
+      var r = ev && ev.reason ? ev.reason : '';
+      window.__FATAL('REVERside — promesse rejetée', String(r));
+    }catch(e){}
+  });
+})();
+</script>
+
   <!-- REVERSIDE_BUILD v167-iphone-hotfix3: landing+play split, help param, robust default images -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
@@ -1531,12 +1581,20 @@ var currentLevelIndex = window.currentLevelIndex; // 0-based
 // ----------------------------------------------
 
 // --- Safe storage wrapper (prevents iOS/Safari SecurityError in private mode) ---
-const LS = {
-  get(k){ try{ return window.localStorage.getItem(k); }catch(e){ return null; } },
-  set(k,v){ try{ window.localStorage.setItem(k, v); }catch(e){} },
-  remove(k){ try{ window.localStorage.removeItem(k); }catch(e){} },
-  clear(){ try{ window.localStorage.clear(); }catch(e){} },
+var LS = window.LS || {
+  get: function(k, defVal){
+    try{ var v = window.localStorage.getItem(k); return (v===null||v===undefined)? defVal : JSON.parse(v); }
+    catch(e){ return defVal; }
+  },
+  set: function(k, val){
+    try{ window.localStorage.setItem(k, JSON.stringify(val)); }catch(e){}
+  },
+  del: function(k){
+    try{ window.localStorage.removeItem(k); }catch(e){}
+  }
 };
+window.LS = LS;
+
 
 // Indique si un Mélange a été fait depuis le dernier reset / changement de niveau
 let hasMixedSinceReset = false;
