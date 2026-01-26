@@ -1,10 +1,41 @@
-<!-- REVERside — VERSION FIGÉE
-     Date : 23/01/2026
-     iPhone OK / PC OK / Auto-route OK
--->
 <!doctype html>
 <html lang="fr">
-<head>
+<head>\n<script>
+(function(){
+  // Global compatibility shim (iOS Safari quirks)
+  var ua = navigator.userAgent || "";
+  var isiOS = /iPad|iPhone|iPod/.test(ua) || (ua.indexOf("Macintosh") !== -1 && typeof document !== "undefined" && "ontouchend" in document);
+  window.isIOS = isiOS;
+
+  // LocalStorage wrapper that never throws (Private mode / denied storage)
+  function safeStorage(){
+    try{
+      var t="__rs__";
+      window.localStorage.setItem(t,"1");
+      window.localStorage.removeItem(t);
+      return window.localStorage;
+    }catch(e){ return null; }
+  }
+  var st = safeStorage();
+  window.LS = window.LS || {
+    ok: !!st,
+    get: function(k, def){ try{ if(!st) return def; var v=st.getItem(k); return (v===null||v===undefined)?def:v; }catch(e){ return def; } },
+    set: function(k, v){ try{ if(!st) return false; st.setItem(k, String(v)); return true; }catch(e){ return false; } },
+    del: function(k){ try{ if(!st) return false; st.removeItem(k); return true; }catch(e){ return false; } },
+    jsonGet: function(k, def){ try{ var v=this.get(k, null); if(v===null) return def; return JSON.parse(v); }catch(e){ return def; } },
+    jsonSet: function(k, obj){ try{ return this.set(k, JSON.stringify(obj)); }catch(e){ return false; } }
+  };
+
+  // Create global bindings for non-module scripts that reference identifiers directly
+  try{ if(typeof window.LS !== "undefined" && typeof LS === "undefined") { window.LS_BINDING = window.LS; } }catch(e){}
+})();
+</script>
+<script>
+/* REVERside compat bindings */
+var LS = window.LS;
+var isIOS = window.isIOS;
+</script>
+
   <!-- REVERSIDE_BUILD v167-iphone-hotfix3: landing+play split, help param, robust default images -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
@@ -1507,12 +1538,6 @@ var currentLevelIndex = window.currentLevelIndex; // 0-based
 // ----------------------------------------------
 
 // --- Safe storage wrapper (prevents iOS/Safari SecurityError in private mode) ---
-const LS = {
-  get(k){ try{ return window.localStorage.getItem(k); }catch(e){ return null; } },
-  set(k,v){ try{ window.localStorage.setItem(k, v); }catch(e){} },
-  remove(k){ try{ window.localStorage.removeItem(k); }catch(e){} },
-  clear(){ try{ window.localStorage.clear(); }catch(e){} },
-};
 
 // Indique si un Mélange a été fait depuis le dernier reset / changement de niveau
 let hasMixedSinceReset = false;
@@ -2394,7 +2419,8 @@ function playScaleSolved(){
 
 
   const cv = byId("cv");
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  var isIOS = window.isIOS; // injected
+
   const renderer = new THREE.WebGLRenderer({antialias:false,canvas:cv,alpha:true,powerPreference:"high-performance"});
 
   // WebGL context loss handling (mobile Safari can drop context under memory pressure)
@@ -2417,7 +2443,7 @@ function playScaleSolved(){
     // iPhone paysage : bloquer (UI trop serrée et superpositions)
     try {
       const lb = document.getElementById("landscapeBlock");
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var isIOS = window.isIOS; // compat
       const isLandscape = vw > vh;
       const tight = isIOS && isLandscape && vh < 520;
       if (lb) {
@@ -2430,7 +2456,7 @@ function playScaleSolved(){
     // iPhone paysage : bloquer (UI trop serrée et superpositions)
     try {
       const lb = document.getElementById("landscapeBlock");
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var isIOS = window.isIOS; // compat
       const isLandscape = vw > vh;
       const tight = isIOS && isLandscape && vh < 520;
       if (lb) {
